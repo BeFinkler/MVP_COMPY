@@ -80,11 +80,7 @@ Branch naming: `feature/`, `fix/`, `refactor/`, `chore/`, `style/` prefixes.
 
 ### Issue tracker
 
-Issues and PRDs live as GitHub issues in `GabrielPittaBr/MVP_COMPY`, driven by the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Default vocabulary — `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+Issues, specs, and implementation tickets live as local Markdown files under `.scratch/`. See `docs/agents/issue-tracker.md`.
 
 ### Domain docs
 

@@ -22,6 +22,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
     /// Chaves que mudaram entre o estado atual e o escrito.
     function changed() {
       return request.resource.data.diff(resource.data).affectedKeys();
@@ -231,16 +235,106 @@ service cloud.firestore {
       }
     }
 
-    // ── places (não existe) ──────────────────────────────────────────
-    // Tarefa 6. O catálogo de locais é curado pela equipe (RN-04), é pequeno e
-    // muda raramente: ele vive **em código**, em `lib/shared/models/
-    // sport_place.dart` (`SportPlace.all`), que alimenta tanto os pins do mapa
-    // quanto o seletor de "Criar evento".
-    //
-    // A regra de `places` foi removida junto com o `PlacesRemoteDataSource`:
-    // nada aponta mais para a coleção, e o deny-by-default cuida do resto. Se
-    // um dia a equipe precisar cadastrar locais sem publicar app novo, é aqui
-    // que a regra volta.
+    // ── places ───────────────────────────────────────────────────────
+    // Contrato transitório do Painel Administrativo. Eventos e mensagens ainda
+    // preservam seus escritores legados nesta etapa do expand–contract; o
+    // mobile novo só passa a depender de `places` nos tickets posteriores.
+    match /places/{placeId} {
+      function validRequiredString(value, maximum) {
+        return value is string && value.size() > 0 && value.size() <= maximum;
+      }
+
+      function validOptionalAddressString(field, maximum) {
+        return !(field in request.resource.data.address)
+            || (request.resource.data.address[field] is string
+                && request.resource.data.address[field].size() > 0
+                && request.resource.data.address[field].size() <= maximum);
+      }
+
+      function validAddress() {
+        return request.resource.data.address is map
+            && request.resource.data.address.keys().hasAll(
+                 ['street', 'city', 'cityLower', 'state'])
+            && request.resource.data.address.keys().hasOnly(
+                 ['street', 'city', 'cityLower', 'state', 'number',
+                  'complement', 'neighborhood', 'postalCode'])
+            && validRequiredString(request.resource.data.address.street, 160)
+            && validRequiredString(request.resource.data.address.city, 100)
+            && validRequiredString(request.resource.data.address.cityLower, 100)
+            && request.resource.data.address.state in [
+                 'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+                 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+                 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
+            && validOptionalAddressString('number', 20)
+            && validOptionalAddressString('complement', 120)
+            && validOptionalAddressString('neighborhood', 100)
+            && (!('postalCode' in request.resource.data.address)
+                || (request.resource.data.address.postalCode is string
+                    && request.resource.data.address.postalCode.matches(
+                         '^[0-9]{8}$')));
+      }
+
+      function validSports() {
+        return request.resource.data.sports is list
+            && request.resource.data.sports.size() >= 1
+            && request.resource.data.sports.size() <= 8
+            && request.resource.data.sports.toSet().size()
+               == request.resource.data.sports.size()
+            && request.resource.data.sports.toSet().hasOnly(
+                 ['futebol', 'basquete', 'volei', 'tenisDeMesa', 'futsal',
+                  'corrida', 'ciclismo', 'caminhada'])
+            && request.resource.data.primarySport in request.resource.data.sports;
+      }
+
+      function validCoordinates() {
+        return request.resource.data.coordinates is latlng
+            && request.resource.data.coordinates.latitude >= -90
+            && request.resource.data.coordinates.latitude <= 90
+            && request.resource.data.coordinates.longitude >= -180
+            && request.resource.data.coordinates.longitude <= 180;
+      }
+
+      function validPlace() {
+        return request.resource.data.keys().hasAll(
+                 ['name', 'nameLower', 'description', 'address', 'sports',
+                  'primarySport', 'coordinates', 'imageUrl', 'status',
+                  'createdAt', 'updatedAt'])
+            && request.resource.data.keys().hasOnly(
+                 ['name', 'nameLower', 'description', 'address', 'sports',
+                  'primarySport', 'coordinates', 'imageUrl', 'status',
+                  'createdAt', 'updatedAt'])
+            && validRequiredString(request.resource.data.name, 120)
+            && validRequiredString(request.resource.data.nameLower, 120)
+            && validRequiredString(request.resource.data.description, 1500)
+            && validAddress()
+            && validSports()
+            && validCoordinates()
+            && request.resource.data.imageUrl is string
+            && request.resource.data.imageUrl.size() > 0
+            && request.resource.data.imageUrl.size() <= 2048
+            && request.resource.data.imageUrl.matches('^https://.+')
+            && request.resource.data.status in ['active', 'inactive']
+            && request.resource.data.createdAt is timestamp
+            && request.resource.data.updatedAt is timestamp;
+      }
+
+      // Um usuário comum só consegue listar ativos porque a regra se aplica a
+      // cada resultado potencial da query. `get` por ID mantém o contexto
+      // histórico de Eventos e Mensagens, inclusive para locais inativos.
+      allow get: if signedIn();
+      allow list: if isAdmin()
+                  || (signedIn() && resource.data.status == 'active');
+      allow create: if isAdmin()
+                    && validPlace()
+                    && request.resource.data.status == 'inactive'
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin()
+                    && validPlace()
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
 
     // ── ratings ──────────────────────────────────────────────────────
     // Tarefa 14. Coleção nova — antes caía no deny-by-default.
@@ -250,8 +344,9 @@ service cloud.firestore {
     // gravada junto da avaliação. Sem `read`, o comentário não vaza nem para
     // quem inspeciona o tráfego.
     //
-    // D12: nota abaixo de 3 estrelas exige justificativa — vale para os três
-    // alvos, e é validado aqui além da UI.
+    // D12: nota abaixo de 3 estrelas exige justificativa — vale para os dois
+    // alvos ainda suportados, e é validado aqui além da UI. Avaliações de
+    // Local Esportivo ficam fora do escopo até existir um sistema real.
     //
     // Avaliação enviada não se reescreve: é a única garantia de integridade da
     // média sem backend.
@@ -263,7 +358,7 @@ service cloud.firestore {
             && request.resource.data.keys().hasOnly(
                  ['eventId', 'fromUid', 'targetType', 'targetId', 'stars',
                   'comment', 'createdAt'])
-            && request.resource.data.targetType in ['user', 'event', 'place']
+            && request.resource.data.targetType in ['user', 'event']
             && request.resource.data.stars is int
             && request.resource.data.stars >= 1
             && request.resource.data.stars <= 5
