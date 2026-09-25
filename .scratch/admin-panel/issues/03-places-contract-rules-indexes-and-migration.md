@@ -39,7 +39,11 @@ Bloqueio externo de ambiente: o Firebase CLI atual exige JDK 21+. O Temurin
 21.0.12.1 LTS foi instalado localmente e confirmado como o `java.exe` usado
 pelo processo do emulador, mas o Windows recusou o socket de loopback interno
 do Java (`Unable to establish loopback connection`, `Invalid argument:
-connect`) antes de a suíte carregar as Rules. A tentativa com o provider de
-selector alternativo teve o mesmo resultado. É necessário executar a suíte em
-um terminal Windows com loopback Java permitido antes de marcar o ticket como
-resolvido. Nenhum deploy, credencial ou operação remota foi feita.
+connect`) antes de a suíte carregar as Rules. A mesma falha ocorreu ao
+executar `npm.cmd` como processo nativo separado. O TCP normal em
+`127.0.0.1` foi confirmado, não havia processo/porta do Emulator em conflito,
+e as tentativas seguras com selector alternativo e host explícito
+`127.0.0.1` falharam do mesmo modo; a configuração foi revertida. É necessário
+executar a suíte em um terminal Windows com loopback Java permitido antes de
+marcar o ticket como resolvido. Nenhum deploy, credencial ou operação remota
+foi feita.
