@@ -430,6 +430,24 @@ describe('exclusao de conta', () => {
   });
 });
 
+describe('registros administrativos de suspensão (ticket 14)', () => {
+  const operation = (db) => doc(db, 'adminOperations', 'a04988af-ccba-4c4e-a0d2-df5c56be31d6');
+
+  it('cliente, inclusive Admin, não lê nem escreve registro administrativo', async () => {
+    const adminDb = testEnv.authenticatedContext('admin-uid', { admin: true }).firestore();
+    await assertFails(getDoc(operation(adminDb)));
+    await assertFails(
+      setDoc(operation(adminDb), {
+        adminUid: 'admin-uid',
+        targetUid: UID,
+        action: 'suspend',
+        reason: 'Motivo administrativo com tamanho válido.',
+        status: 'pending',
+      }),
+    );
+  });
+});
+
 function assertHandle(snap) {
   if (!snap.exists() || !snap.data().handle) {
     throw new Error('perfil sem handle — _userHasProfile devolveria false');

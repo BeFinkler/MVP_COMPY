@@ -369,6 +369,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Registros de suspensão são exclusivos do Admin SDK. Nem mesmo uma
+    // sessão com claim administrativa recebe acesso direto: o painel usa a
+    // Callable idempotente para não expor auditoria mínima, motivos ou o
+    // protocolo pending/succeeded/failed ao cliente.
+    match /adminOperations/{operationId} {
+      allow read, write: if false;
+    }
+
     // ── ratings ──────────────────────────────────────────────────────
     // Tarefa 14. Coleção nova — antes caía no deny-by-default.
     //
