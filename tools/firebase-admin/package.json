@@ -12,7 +12,8 @@
     "lint": "eslint src test",
     "test": "npm run build && node --test lib/test/*.test.js",
     "bootstrap-admin": "npm run build && node lib/src/cli/bootstrap-admin.js",
-    "migrate-parque-do-trabalhador": "npm run build && node lib/src/cli/migrate-parque-do-trabalhador.js"
+    "migrate-parque-do-trabalhador": "npm run build && node lib/src/cli/migrate-parque-do-trabalhador.js",
+    "backfill-profile-name-lower": "npm run build && node lib/src/cli/backfill-profile-name-lower.js"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0"
