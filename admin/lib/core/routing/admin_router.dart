@@ -1,0 +1,93 @@
+import 'package:go_router/go_router.dart';
+
+import '../../features/auth/presentation/admin_auth_feature.dart';
+import '../../features/auth/presentation/admin_auth_screens.dart';
+import '../shell/admin_shell.dart';
+
+const _publicRoutes = <String>{'/login', '/unauthorized'};
+
+/// Decisão pura para testar redirecionamentos e deep links sem Firebase.
+String? redirectForAdminRoute({
+  required String location,
+  required AdminAccessState accessState,
+}) {
+  final isPublicRoute = _publicRoutes.contains(location);
+
+  return switch (accessState) {
+    AdminAccessState.authorized => isPublicRoute ? '/dashboard' : null,
+    AdminAccessState.unauthorized => location == '/unauthorized' ? null : '/unauthorized',
+    AdminAccessState.signedOut || AdminAccessState.loading => isPublicRoute ? null : '/login',
+  };
+}
+
+GoRouter createAdminRouter({
+  required AdminAuthController authController,
+  String? initialLocation,
+}) {
+  return GoRouter(
+    initialLocation: initialLocation ?? '/dashboard',
+    refreshListenable: authController,
+    redirect: (context, state) => redirectForAdminRoute(
+      location: state.uri.path,
+      accessState: authController.state,
+    ),
+    routes: <RouteBase>[
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => AdminLoginScreen(controller: authController),
+      ),
+      GoRoute(
+        path: '/unauthorized',
+        builder: (context, state) => AdminUnauthorizedScreen(controller: authController),
+      ),
+      GoRoute(
+        path: '/dashboard',
+        builder: (context, state) => AdminShell(
+          controller: authController,
+          location: state.uri.path,
+          child: const AdminRoutePlaceholder(title: 'Dashboard'),
+        ),
+      ),
+      GoRoute(
+        path: '/places',
+        builder: (context, state) => AdminShell(
+          controller: authController,
+          location: state.uri.path,
+          child: const AdminRoutePlaceholder(title: 'Locais Esportivos'),
+        ),
+      ),
+      GoRoute(
+        path: '/places/new',
+        builder: (context, state) => AdminShell(
+          controller: authController,
+          location: state.uri.path,
+          child: const AdminRoutePlaceholder(title: 'Cadastrar Local Esportivo'),
+        ),
+      ),
+      GoRoute(
+        path: '/places/:id',
+        builder: (context, state) => AdminShell(
+          controller: authController,
+          location: state.uri.path,
+          child: const AdminRoutePlaceholder(title: 'Detalhes do Local Esportivo'),
+        ),
+      ),
+      GoRoute(
+        path: '/users',
+        builder: (context, state) => AdminShell(
+          controller: authController,
+          location: state.uri.path,
+          child: const AdminRoutePlaceholder(title: 'Usuários'),
+        ),
+      ),
+      GoRoute(
+        path: '/users/:uid',
+        builder: (context, state) => AdminShell(
+          controller: authController,
+          location: state.uri.path,
+          child: const AdminRoutePlaceholder(title: 'Detalhes do Usuário'),
+        ),
+      ),
+    ],
+  );
+}

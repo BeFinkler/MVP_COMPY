@@ -11,4 +11,13 @@ abstract final class AdminStrings {
   static const String foundationBody =
       'Os módulos administrativos serão liberados incrementalmente.';
   static const String foundationModulesLabel = 'Módulos previstos';
+  static const String loginTitle = 'Acesso administrativo';
+  static const String loginBody =
+      'Entre com a conta administrativa autorizada do COMPY.';
+  static const String unauthorizedTitle = 'Acesso não autorizado';
+  static const String unauthorizedBody =
+      'Esta conta não possui permissão para acessar o painel administrativo.';
+  static const String authorizationLoadingTitle = 'Verificando acesso';
+  static const String authorizationLoadingBody =
+      'Validando sua sessão administrativa com segurança.';
 }

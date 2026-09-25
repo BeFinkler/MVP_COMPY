@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'core/constants/admin_strings.dart';
+import 'core/routing/admin_router.dart';
 import 'core/theme/admin_theme.dart';
 import 'features/auth/presentation/admin_auth_feature.dart';
-import 'features/dashboard/presentation/admin_dashboard_feature.dart';
-import 'features/places/presentation/admin_places_feature.dart';
-import 'features/users/presentation/admin_users_feature.dart';
 
 typedef FirebaseInitializer = Future<void> Function();
 
@@ -17,10 +15,12 @@ typedef FirebaseInitializer = Future<void> Function();
 class CompyAdminBootstrap extends StatefulWidget {
   const CompyAdminBootstrap({
     required this.initialize,
+    this.authGatewayFactory = FirebaseAdminAuthGateway.new,
     super.key,
   });
 
   final FirebaseInitializer initialize;
+  final AdminAuthGateway Function() authGatewayFactory;
 
   @override
   State<CompyAdminBootstrap> createState() => _CompyAdminBootstrapState();
@@ -58,24 +58,73 @@ class _CompyAdminBootstrapState extends State<CompyAdminBootstrap> {
           );
         }
 
-        return const CompyAdminApp();
+        return CompyAdminApp(authGateway: widget.authGatewayFactory());
       },
     );
   }
 }
 
-/// App neutro da fundação. Autorização e rotas administrativas são adicionadas
-/// separadamente para evitar renderizar conteúdo antes do guard real existir.
-class CompyAdminApp extends StatelessWidget {
-  const CompyAdminApp({super.key});
+/// O shell nunca é renderizado antes da validação completa da sessão.
+class CompyAdminApp extends StatefulWidget {
+  const CompyAdminApp({
+    required this.authGateway,
+    this.initialLocation,
+    super.key,
+  });
+
+  final AdminAuthGateway authGateway;
+  final String? initialLocation;
+
+  @override
+  State<CompyAdminApp> createState() => _CompyAdminAppState();
+}
+
+class _CompyAdminAppState extends State<CompyAdminApp> {
+  late final AdminAuthController _authController = AdminAuthController(widget.authGateway);
+  late final _router = createAdminRouter(
+    authController: _authController,
+    initialLocation: widget.initialLocation,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _authController.addListener(_onAccessChanged);
+    _authController.start();
+  }
+
+  void _onAccessChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _authController.removeListener(_onAccessChanged);
+    _router.dispose();
+    _authController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    if (_authController.state == AdminAccessState.loading) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: AdminStrings.appTitle,
+        theme: AdminTheme.light,
+        home: const _AdminStartupScreen(
+          title: AdminStrings.authorizationLoadingTitle,
+          body: AdminStrings.authorizationLoadingBody,
+          showProgress: true,
+        ),
+      );
+    }
+
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: AdminStrings.appTitle,
       theme: AdminTheme.light,
-      home: const _AdminFoundationScreen(),
+      routerConfig: _router,
     );
   }
 }
@@ -124,50 +173,6 @@ class _AdminStartupScreen extends StatelessWidget {
                   ],
                 ],
               ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AdminFoundationScreen extends StatelessWidget {
-  const _AdminFoundationScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    final modules = <String>[
-      AdminAuthFeature.name,
-      AdminDashboardFeature.name,
-      AdminPlacesFeature.name,
-      AdminUsersFeature.name,
-    ];
-
-    return Scaffold(
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  AdminStrings.foundationTitle,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 8),
-                const Text(AdminStrings.foundationBody),
-                const SizedBox(height: 20),
-                Text(
-                  AdminStrings.foundationModulesLabel,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                for (final module in modules) Text('• $module'),
-              ],
             ),
           ),
         ),
