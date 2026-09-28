@@ -397,11 +397,18 @@ class AuthRemoteDataSource {
         _firestore.collection('users').doc(uid);
     final DocumentSnapshot<Map<String, dynamic>> existingProfile =
         await userRef.get();
-    final dynamic createdAt = existingProfile.exists
-        ? existingProfile.data()?['createdAt']
-        : FieldValue.serverTimestamp();
-    if (existingProfile.exists && createdAt == null) {
-      throw StateError('O perfil existente não possui createdAt imutável.');
+    final dynamic createdAt;
+    if (existingProfile.exists) {
+      final Map<String, dynamic>? existingData = existingProfile.data();
+      if (existingData == null || !existingData.containsKey('createdAt')) {
+        throw StateError('O perfil existente não possui createdAt imutável.');
+      }
+      createdAt = existingData['createdAt'];
+      if (createdAt == null) {
+        throw StateError('O perfil existente não possui createdAt imutável.');
+      }
+    } else {
+      createdAt = FieldValue.serverTimestamp();
     }
 
     final WriteBatch batch = _firestore.batch();
