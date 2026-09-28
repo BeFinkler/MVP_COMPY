@@ -21,7 +21,7 @@ Spec: §§ 5, 7, 8, 9, 13, 24 e Testing Decisions / Firestore Rules e Scripts.
 
 ## Verification
 
-- [ ] Executar suíte de Rules no emulador com os novos casos (bloqueado por JDK 21 LTS).
+- [ ] Executar suíte real de Rules no Emulator; bloqueada neste executor pelo loopback Java, apesar de JDK 21 ativo. Script de execução manual preparado em `tools/scripts/run-firestore-rules-tests.ps1`.
 - [x] Executar testes do script, incluindo create/no-op/divergência/dry-run.
 - [x] Validar sintaxe do arquivo de índices; a sintaxe das Rules aguarda a compilação do emulador.
 
@@ -47,3 +47,21 @@ e as tentativas seguras com selector alternativo e host explícito
 executar a suíte em um terminal Windows com loopback Java permitido antes de
 marcar o ticket como resolvido. Nenhum deploy, credencial ou operação remota
 foi feita.
+
+Confirmação adicional no executor Codex (2026-09-28): um reproducer mínimo em
+`tools/scripts/java-loopback-reproducer.java`, executado com Temurin
+21.0.12.1, falhou em `Selector.open()` com o mesmo `Unable to establish
+loopback connection` / `Invalid argument: connect`, antes do teste de bind TCP.
+Isso confirma que repetir a suíte neste executor não é útil e aponta para uma
+limitação de loopback Java do ambiente do agente; não prova que um PowerShell
+Windows normal da máquina tenha a mesma restrição.
+
+Para validar fora do executor, abra PowerShell no Windows e rode:
+
+```powershell
+& 'C:\Users\Bernardo Finkler\StudioProjects\MVP_COMPY\tools\scripts\run-firestore-rules-tests.ps1'
+```
+
+O script seleciona o JDK 21 somente durante sua execução, valida `java
+-version`, roda a suíte real e devolve o exit code do `npm test`. Até esse
+resultado ser fornecido, o critério real do Emulator permanece pendente.

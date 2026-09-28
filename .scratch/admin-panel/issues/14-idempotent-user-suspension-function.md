@@ -25,3 +25,12 @@ Spec: §§ 17, 18, 19, 22 e Testing Decisions / Callable Functions.
 - [ ] Executar testes de Rules para negar acesso cliente aos registros: bloqueado pela falha conhecida de loopback Java do Firebase Emulator (ticket 03). O caso de negação foi adicionado à suíte para execução quando o Emulator estiver disponível.
 
 Implementation complete; o status permanece bloqueado exclusivamente pela validação real das Firestore Rules no Emulator.
+
+Atualização de validação (2026-09-28): o critério pendente continua sendo a
+execução real do Emulator para provar que clientes, inclusive Administradores,
+não conseguem ler nem escrever `adminOperations`. O reproducer Java
+`tools/scripts/java-loopback-reproducer.java` falhou em `Selector.open()` neste
+executor com `Unable to establish loopback connection` / `Invalid argument:
+connect`, antes do Emulator. Não houve nova tentativa repetida da suíte, nem
+alteração das Rules para contornar a limitação. A validação deve ser executada
+junto da suíte completa pelo script documentado no ticket 03.
