@@ -2,6 +2,7 @@
  * Contrato transitório de `places`: o catálogo ainda não é escritor do
  * mobile, mas Rules, índice e migração precisam estar corretos antes disso.
  */
+import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { after, before, beforeEach, describe, it } from 'node:test';
 import {
@@ -130,6 +131,13 @@ describe('places — leitura por papel', () => {
 });
 
 describe('places — escrita administrativa e schema', () => {
+  it('SDK cliente recusa latitude inválida antes da escrita chegar às Rules', () => {
+    assert.throws(
+      () => new GeoPoint(-91, 0),
+      /Latitude must be a number between -90 and 90/,
+    );
+  });
+
   it('Administrador cria documento completo inicialmente inativo', async () => {
     await assertSucceeds(setDoc(doc(asAdmin(), 'places', 'novo'), validPlace()));
   });
@@ -148,7 +156,10 @@ describe('places — escrita administrativa e schema', () => {
     ['modalidade principal incompatível', { primarySport: 'volei' }],
     ['CEP com máscara', { address: { ...validPlace().address, postalCode: '95600-354' } }],
     ['imagem sem HTTPS', { imageUrl: 'http://example.test/place.png' }],
-    ['coordenada fora da faixa', { coordinates: new GeoPoint(-91, 0) }],
+    // GeoPoint inválido não pode ser construído pelo SDK cliente. O Rules
+    // Emulator recebe uma escrita possível com tipo incorreto; a faixa de
+    // latitude/longitude permanece validada nas Rules para GeoPoints válidos.
+    ['coordenadas não são GeoPoint', { coordinates: { latitude: -91, longitude: 0 } }],
     ['timestamp do cliente', { createdAt: new Date(), updatedAt: new Date() }],
   ]) {
     it(`Administrador não cria ${name}`, async () => {

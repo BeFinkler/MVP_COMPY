@@ -19,7 +19,9 @@ try {
   $env:Path = "$(Join-Path $jdkRoot 'bin');$previousPath"
 
   Write-Host 'Java selecionado para esta execução:'
-  $versionOutput = (& $javaExe -version 2>&1 | Out-String).Trim()
+  # `java -version` escreve no stderr. Encaminhar por cmd.exe transforma o
+  # resultado em saída normal sem o NativeCommandError do Windows PowerShell.
+  $versionOutput = & $env:ComSpec /d /c "`"$javaExe`" -version 2>&1"
   $versionExitCode = $LASTEXITCODE
   Write-Host $versionOutput
   if ($versionExitCode -ne 0 -or $versionOutput -notmatch 'version "21(?:\.|"|\+)') {
