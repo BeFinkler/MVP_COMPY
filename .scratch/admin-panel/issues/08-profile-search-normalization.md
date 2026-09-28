@@ -1,6 +1,6 @@
 # 08: Normalizar Perfis de Usuário para pesquisa administrativa
 
-Status: blocked
+Status: resolved
 
 Blocked by: 02 — Preparar tooling confiável Firebase e fundação de Functions
 
@@ -20,7 +20,7 @@ Spec: §§ 14, 15, 24 e Testing Decisions / Firestore Rules, Mobile e Scripts.
 ## Verification
 
 - [x] Executar testes Dart afetados: 173 testes passaram usando o alias curto 8.3 do SDK Flutter; o hook `objective_c` executou. `flutter analyze lib test` não teve erros, mas saiu com exit code 1 por 10 diagnósticos informativos preexistentes.
-- [ ] Executar Rules no Emulator: bloqueado pela falha conhecida de loopback Java do Firebase Emulator (ticket 03).
+- [x] Executar Rules no Emulator: a execução manual reportou 93 testes passando; os três cancelamentos pertenciam exclusivamente a `places.test.js`, sem cancelar os casos do ticket 08 em `users.test.js`.
 - [x] Executar testes do script: `npm test --prefix tools/firebase-admin` passou (34 testes).
 
 Implementation complete; validation remains blocked exclusivamente pela execução real das Firestore Rules no Emulator. As Rules finais serão publicadas na fase expand--contract prevista na spec, não como alteração ad hoc deste ticket.
@@ -41,10 +41,12 @@ deprecações). O `flutter analyze` sem escopo também percorre `admin/` como se
 fosse parte do app raiz e reporta imports do package independente sem resolver;
 `admin/` possui seu próprio `pubspec.yaml`.
 
-O ticket continua `blocked` somente pela suíte real das Firestore Rules no
-Emulator, que não pôde iniciar devido à falha Java documentada no ticket 03.
-Comando de validação para o mobile em uma sessão PowerShell usando o alias
-curto do SDK:
+Os critérios do ticket 08 estão validados: a execução manual real do Emulator
+passou pelos casos de perfil do `users.test.js`, enquanto os 173 testes mobile
+passaram usando o alias curto do SDK. Os três cancelamentos da execução manual
+foram os casos de escrita/schema de `places`, registrados no ticket 03.
+Comando reproduzível para os testes mobile em uma sessão PowerShell usando o
+alias curto do SDK:
 
 ```powershell
 $env:FLUTTER_ROOT = 'C:\Users\BERNAR~1\develop\flutter'

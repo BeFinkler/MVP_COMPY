@@ -1,6 +1,6 @@
 # 14: Implementar Callable idempotente de Suspensão Administrativa
 
-Status: blocked
+Status: resolved
 
 Blocked by: 09 — Expor consultas administrativas mínimas de Conta de Usuário
 
@@ -22,9 +22,9 @@ Spec: §§ 17, 18, 19, 22 e Testing Decisions / Callable Functions.
 ## Verification
 
 - [x] Executar typecheck/lint/testes de Functions: `npm run typecheck`, `npm run lint` e `npm test` em `functions/` passaram (19 testes).
-- [ ] Executar testes de Rules para negar acesso cliente aos registros: bloqueado pela falha conhecida de loopback Java do Firebase Emulator (ticket 03). O caso de negação foi adicionado à suíte para execução quando o Emulator estiver disponível.
+- [x] Executar testes de Rules para negar acesso cliente aos registros: o teste `cliente, inclusive Admin, não lê nem escreve registro administrativo` passou no Emulator na execução manual de 2026-09-28.
 
-Implementation complete; o status permanece bloqueado exclusivamente pela validação real das Firestore Rules no Emulator.
+Implementation complete; Functions (typecheck, lint e 19 testes) e a validação real da Rule que nega acesso de clientes a `adminOperations` passaram. A falha global restante da suíte é independente deste ticket e está registrada no ticket 03.
 
 Atualização de validação (2026-09-28): o critério pendente continua sendo a
 execução real do Emulator para provar que clientes, inclusive Administradores,

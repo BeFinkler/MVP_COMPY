@@ -65,3 +65,11 @@ Para validar fora do executor, abra PowerShell no Windows e rode:
 O script seleciona o JDK 21 somente durante sua execução, valida `java
 -version`, roda a suíte real e devolve o exit code do `npm test`. Até esse
 resultado ser fornecido, o critério real do Emulator permanece pendente.
+
+Evidência de execução manual fornecida em 2026-09-28: com JDK 21 fora do
+executor, o Emulator iniciou e a suíte chegou a 96 testes; 93 passaram, nenhum
+falhou por assertion e três foram cancelados porque o fixture tentou criar
+`GeoPoint(-91, 0)` antes de chamar as Rules. O teste foi corrigido para verificar
+separadamente a rejeição local do SDK e enviar às Rules um valor possível com
+tipo inválido. A suíte completa precisa ser repetida fora do executor com essa
+correção; o ticket permanece bloqueado até o exit code final ser 0.
