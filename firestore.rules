@@ -170,6 +170,50 @@ service cloud.firestore {
                <= request.resource.data.totalSpots;
       }
 
+      function eventPlacePath(placeId) {
+        return /databases/$(database)/documents/places/$(placeId);
+      }
+
+      function newPlaceSnapshotMatchesCurrentPlace() {
+        let place = get(eventPlacePath(request.resource.data.placeId)).data;
+        return request.resource.data.placeId is string
+            && request.resource.data.placeId.size() > 0
+            && request.resource.data.placeSnapshot is map
+            && request.resource.data.placeSnapshot.keys().hasAll(
+                 ['name', 'address', 'coordinates'])
+            && request.resource.data.placeSnapshot.keys().hasOnly(
+                 ['name', 'address', 'coordinates'])
+            && exists(eventPlacePath(request.resource.data.placeId))
+            && place.status == 'active'
+            && request.resource.data.sport in place.sports
+            && request.resource.data.placeSnapshot.name == place.name
+            && request.resource.data.placeSnapshot.address == place.address
+            && request.resource.data.placeSnapshot.coordinates is latlng
+            && request.resource.data.placeSnapshot.coordinates
+               == place.coordinates
+            && request.resource.data.coordinates is latlng
+            && request.resource.data.coordinates == place.coordinates
+            && request.resource.data.geohash is string
+            && request.resource.data.geohash.size() == 9
+            && request.resource.data.location
+               == place.name + ', ' + place.address.city;
+      }
+
+      // Durante a janela expand–contract, documentos legados podem continuar
+      // sendo criados pelo escritor antigo. Presença parcial do novo contrato
+      // nunca é aceita.
+      function eventCreationPlaceContractIsValid() {
+        return (!request.resource.data.keys().hasAny(['placeId'])
+                && !request.resource.data.keys().hasAny(['placeSnapshot']))
+            || (request.resource.data.keys().hasAll(
+                  ['placeId', 'placeSnapshot'])
+                && newPlaceSnapshotMatchesCurrentPlace());
+      }
+
+      function historicalEventFieldsUnchanged() {
+        return !changed().hasAny(['sport', 'placeId', 'placeSnapshot']);
+      }
+
       // `participantIds` é o array de uids que a seção "Participando"
       // consulta (`arrayContains`) — `participants`, sendo array de mapas, não
       // é consultável. Por isso ele entra na regra: se pudesse crescer sozinho,
@@ -214,8 +258,12 @@ service cloud.firestore {
                        == [request.auth.uid]
                     && request.resource.data.totalSpots is int
                     && request.resource.data.totalSpots > 0
-                    && spotsCoherent();
-      allow update: if (isCreator() && ownerUnchanged() && spotsCoherent())
+                    && spotsCoherent()
+                    && eventCreationPlaceContractIsValid();
+      allow update: if (isCreator()
+                       && ownerUnchanged()
+                       && spotsCoherent()
+                       && historicalEventFieldsUnchanged())
                     || isJoin();
       allow delete: if false;
     }
