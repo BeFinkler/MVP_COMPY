@@ -56,7 +56,8 @@ class PlaceDetailsSheet extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(8)),
                 child: CachedNetworkImage(
                   imageUrl: place.imageUrl,
                   height: 200,
@@ -65,10 +66,10 @@ class PlaceDetailsSheet extends StatelessWidget {
                     height: 200,
                     color: AppColors.surfaceMuted,
                     child: Icon(
-                    place.primarySport.icon,
-                    size: 60,
-                    color: place.primarySport.color,
-                  ),
+                      place.primarySport.icon,
+                      size: 60,
+                      color: place.primarySport.color,
+                    ),
                   ),
                 ),
               ),
@@ -88,7 +89,9 @@ class PlaceDetailsSheet extends StatelessWidget {
                     Text(
                       // Endereço completo só quando conferido; senão a
                       // cidade já situa o local.
-                      place.address.isEmpty ? place.city : place.address,
+                      place.address.street.isEmpty
+                          ? place.city
+                          : place.formattedAddress,
                       style: const TextStyle(
                         color: AppColors.onSurfaceMuted,
                         fontSize: 13,
@@ -98,15 +101,6 @@ class PlaceDetailsSheet extends StatelessWidget {
                     // Esportes praticáveis — os mesmos que o seletor de
                     // "Criar evento" oferece para este local.
                     _SportsWrap(place: place),
-                    // Local sem nenhuma avaliação não mostra nota nenhuma
-                    // (nada de 0,0 estrelas em local real).
-                    if (place.hasRatings) ...<Widget>[
-                      const SizedBox(height: 12),
-                      _RatingRow(
-                        rating: place.rating,
-                        count: place.ratingsCount,
-                      ),
-                    ],
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -178,38 +172,6 @@ class _SportsWrap extends StatelessWidget {
               ],
             ),
           ),
-      ],
-    );
-  }
-}
-
-class _RatingRow extends StatelessWidget {
-  const _RatingRow({required this.rating, required this.count});
-  final double rating;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Text(
-          rating.toStringAsFixed(1),
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(width: 6),
-        ...List<Widget>.generate(5, (i) {
-          final filled = i < rating.round();
-          return Icon(
-            filled ? Icons.star : Icons.star_border,
-            size: 18,
-            color: filled ? AppColors.warning : AppColors.outline,
-          );
-        }),
-        const SizedBox(width: 6),
-        Text(
-          '($count)',
-          style: const TextStyle(color: AppColors.onSurfaceMuted),
-        ),
       ],
     );
   }

@@ -8,6 +8,7 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/sport_place.dart';
+import '../../domain/repositories/places_repository.dart';
 import '../../../../shared/widgets/custom_sport_marker.dart';
 import '../../../chat/presentation/widgets/share_place_sheet.dart';
 import '../providers/maps_providers.dart';
@@ -81,7 +82,7 @@ class _MapsPageState extends ConsumerState<MapsPage> {
 
   Widget _buildScaffold(
     BuildContext context,
-    AsyncValue<List<SportPlace>> placesAsync,
+    AsyncValue<PlacesStreamResult> placesAsync,
     SportPlace? selectedPlace,
   ) {
     return Scaffold(
@@ -104,9 +105,9 @@ class _MapsPageState extends ConsumerState<MapsPage> {
                 userAgentPackageName: 'br.com.compy.mvp',
               ),
               placesAsync.when(
-                data: (places) => MarkerLayer(
+                data: (result) => MarkerLayer(
                   markers: <Marker>[
-                    for (final place in places)
+                    for (final place in result.places)
                       Marker(
                         point: place.coordinates,
                         width: place.id == selectedPlace?.id ? 56 : 40,
@@ -116,7 +117,8 @@ class _MapsPageState extends ConsumerState<MapsPage> {
                         alignment: Alignment.topCenter,
                         child: GestureDetector(
                           onTap: () {
-                            ref.read(selectedPlaceProvider.notifier).state = place;
+                            ref.read(selectedPlaceProvider.notifier).state =
+                                place;
                             _mapController.move(
                               place.coordinates,
                               AppGeo.focusZoom,
