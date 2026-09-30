@@ -321,10 +321,10 @@ service cloud.firestore {
 
       function validCoordinates() {
         return request.resource.data.coordinates is latlng
-            && request.resource.data.coordinates.latitude >= -90
-            && request.resource.data.coordinates.latitude <= 90
-            && request.resource.data.coordinates.longitude >= -180
-            && request.resource.data.coordinates.longitude <= 180;
+            && request.resource.data.coordinates.latitude() >= -90
+            && request.resource.data.coordinates.latitude() <= 90
+            && request.resource.data.coordinates.longitude() >= -180
+            && request.resource.data.coordinates.longitude() <= 180;
       }
 
       function validPlace() {

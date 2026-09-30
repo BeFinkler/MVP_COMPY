@@ -74,9 +74,15 @@ separadamente a rejeição local do SDK e enviar às Rules um valor possível co
 tipo inválido. A suíte completa precisa ser repetida fora do executor com essa
 correção; o ticket permanece bloqueado até o exit code final ser 0.
 
-Tentativa nesta retomada (2026-09-30): o runner confirmou Temurin 21.0.12.1 e
-iniciou o Firebase CLI, mas o Emulator encerrou antes dos testes com `failed to
-create a child event loop` / `Unable to establish loopback connection` / `Invalid
-argument: connect`. O runner também foi ajustado para validar corretamente a
-saída multilinha de `java -version`. Não serão repetidas tentativas no executor
-Codex; falta rodar a suíte corrigida em um PowerShell Windows normal.
+Diagnóstico da execução manual seguinte (108 testes, 106 pass, 2 fail): o
+contrato `places` já tipava `coordinates is latlng`, mas `validCoordinates()`
+acessava `.latitude` e `.longitude` como se o LatLng fosse um map. Nas Rules,
+esses valores são métodos: `latitude()` e `longitude()`. A regra foi corrigida
+para usar os métodos e mantém os limites inclusivos de latitude e longitude.
+Os testes não foram alterados nesta correção.
+
+Tentativa no executor Codex após a correção (2026-09-30): JDK 21 foi confirmado,
+mas o Emulator terminou antes de carregar as Rules com `Unable to establish
+loopback connection` / `Invalid argument: connect`; exit code do runner: 1.
+O ticket segue bloqueado até a suíte corrigida passar integralmente fora do
+Codex.
