@@ -194,6 +194,21 @@ class SportPlace extends Equatable {
   String get formattedAddress => address.formatted;
   List<Sport> get allowedSports => sports;
 
+  SportPlace copyWithStatus(PlaceStatus newStatus) => SportPlace(
+        id: id,
+        name: name,
+        nameLower: nameLower,
+        description: description,
+        address: address,
+        coordinates: coordinates,
+        sports: sports,
+        primarySport: primarySport,
+        status: newStatus,
+        imageUrl: imageUrl,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
   static SportPlace? tryFromFirestore(
     String id,
     Map<String, dynamic> data,

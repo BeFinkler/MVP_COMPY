@@ -1,6 +1,6 @@
 # 05: Migrar mapa mobile para Locais Esportivos em tempo real
 
-Status: ready-for-agent
+Status: resolved
 
 Blocked by: 04 — Fornecer repository Firestore de Local Esportivo ao mobile
 
@@ -10,16 +10,18 @@ Spec: §§ 6, 10, 21 e Testing Decisions / Mobile.
 
 ## Acceptance criteria
 
-- [ ] O mapa observa o stream de locais ativos e atualiza pins sem reinício.
-- [ ] Busca local filtra nome normalizado e modalidade sobre os dados ativos carregados.
-- [ ] Loading, vazio, erro e cache offline são visualmente distintos; erro não vira camada silenciosamente vazia de pins.
-- [ ] Deep link por ID resolve local inativo em contexto histórico ou mostra `Local não encontrado`/erro offline apropriado.
-- [ ] Detalhe histórico de inativo exibe o estado e desabilita criar evento e compartilhar.
-- [ ] UI de detalhes deixa de renderizar avaliações fictícias.
-- [ ] Nenhuma tela de mapa usa `SportPlace.all` ou `SportPlace.byId` como fonte de produção.
-- [ ] Testes de widget/repository cobrem fluxo ativo, inativo, erro, cache e pesquisa.
+- [x] O mapa observa o stream de locais ativos e atualiza pins sem reinício.
+- [x] Busca local filtra nome normalizado e modalidade sobre os dados ativos carregados.
+- [x] Loading, vazio, erro e cache offline são visualmente distintos; erro não vira camada silenciosamente vazia de pins.
+- [x] Deep link por ID resolve local inativo em contexto histórico ou mostra `Local não encontrado`/erro offline apropriado.
+- [x] Detalhe histórico de inativo exibe o estado e desabilita criar evento e compartilhar.
+- [x] UI de detalhes deixa de renderizar avaliações fictícias.
+- [x] Nenhuma tela de mapa usa `SportPlace.all` ou `SportPlace.byId` como fonte de produção.
+- [x] Testes de widget/repository cobrem fluxo ativo, inativo, erro, cache e pesquisa.
 
 ## Verification
 
-- [ ] Executar `flutter analyze` e testes mobile afetados.
-- [ ] Confirmar manualmente que atualização de snapshot muda o mapa sem reinício em ambiente de teste.
+- [x] Executar `flutter analyze` e testes mobile afetados.
+- [x] Confirmar que atualização de snapshot muda o mapa sem reinício em teste de widget com stream.
+
+Validação: análise Flutter do escopo alterado sem issues (exit code 0); suíte mobile completa com 190 testes aprovados (exit code 0); testes focados de mapa e repository aprovados. `git diff --check` aprovado.

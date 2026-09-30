@@ -85,6 +85,17 @@ class PlaceDetailsSheet extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    if (place.status == PlaceStatus.inactive) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Semantics(
+                        label: 'Local inativo',
+                        child: const Chip(
+                          avatar: Icon(Icons.info_outline, size: 18),
+                          label: Text('Local inativo'),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 6),
                     Text(
                       // Endereço completo só quando conferido; senão a
@@ -108,13 +119,17 @@ class PlaceDetailsSheet extends StatelessWidget {
                         _ActionButton(
                           icon: Icons.add,
                           label: AppStrings.eventCreate,
-                          onTap: onCreateEvent,
+                          onTap: place.status == PlaceStatus.active
+                              ? onCreateEvent
+                              : null,
                         ),
                         const SizedBox(width: 40),
                         _ActionButton(
                           icon: Icons.share_outlined,
                           label: AppStrings.mapsShare,
-                          onTap: onShare,
+                          onTap: place.status == PlaceStatus.active
+                              ? onShare
+                              : null,
                         ),
                       ],
                     ),
@@ -186,7 +201,7 @@ class _ActionButton extends StatelessWidget {
 
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -198,11 +213,14 @@ class _ActionButton extends StatelessWidget {
           child: Container(
             width: 56,
             height: 56,
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
+            decoration: BoxDecoration(
+              color: onTap == null ? AppColors.outline : AppColors.primary,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: Colors.white),
+            child: Icon(
+              icon,
+              color: onTap == null ? AppColors.onSurfaceMuted : Colors.white,
+            ),
           ),
         ),
         const SizedBox(height: 6),

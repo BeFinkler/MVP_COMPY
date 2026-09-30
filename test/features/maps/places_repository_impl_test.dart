@@ -262,6 +262,23 @@ void main() {
       expect(result.place!.status, PlaceStatus.inactive);
       expect(result.isFromCache, isFalse);
     });
+
+    test('propaga erro do stream em vez de convertê-lo em lista vazia',
+        () async {
+      final remote = _FakePlacesRemoteDataSource(
+        activeSnapshot: const PlacesDocumentsSnapshot(
+          documents: <PlaceDocumentSnapshot>[],
+          isFromCache: false,
+        ),
+        streamError: StateError('Firestore indisponível'),
+      );
+      final repository = PlacesRepositoryImpl(remote);
+
+      await expectLater(
+        repository.watchActive(),
+        emitsError(isA<StateError>()),
+      );
+    });
   });
 }
 
@@ -273,16 +290,21 @@ class _FakePlacesRemoteDataSource implements PlacesRemoteDataSource {
       data: null,
       isFromCache: false,
     ),
+    this.streamError,
   });
 
   final PlacesDocumentsSnapshot activeSnapshot;
   PlaceDocumentSnapshot placeById;
+  final Object? streamError;
   Sport? requestedSport;
   String? requestedId;
 
   @override
   Stream<PlacesDocumentsSnapshot> watchActive({Sport? sport}) {
     requestedSport = sport;
+    if (streamError != null) {
+      return Stream<PlacesDocumentsSnapshot>.error(streamError!);
+    }
     return Stream<PlacesDocumentsSnapshot>.value(activeSnapshot);
   }
 

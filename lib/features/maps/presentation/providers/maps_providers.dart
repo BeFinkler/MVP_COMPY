@@ -20,6 +20,7 @@ final getPlacesBySportProvider = Provider<GetPlacesBySport>(
 
 /// Filtro atual da tela de mapa (`null` = todos os esportes).
 final mapsSportFilterProvider = StateProvider<Sport?>((_) => null);
+final mapsSearchQueryProvider = StateProvider<String>((_) => '');
 
 /// Pin selecionado (mostra/esconde o bottom sheet).
 ///
@@ -30,6 +31,10 @@ final selectedPlaceProvider =
     StateProvider.autoDispose<SportPlace?>((_) => null);
 
 final placesProvider = StreamProvider<PlacesStreamResult>((ref) {
-  final filter = ref.watch(mapsSportFilterProvider);
-  return ref.watch(getPlacesBySportProvider).call(sport: filter);
+  return ref.watch(getPlacesBySportProvider).call();
+});
+
+final placeByIdProvider =
+    FutureProvider.family<PlaceLookupResult, String>((ref, id) {
+  return ref.watch(placesRepositoryProvider).getById(id);
 });
