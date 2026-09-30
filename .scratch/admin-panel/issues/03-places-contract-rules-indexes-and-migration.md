@@ -73,3 +73,10 @@ falhou por assertion e três foram cancelados porque o fixture tentou criar
 separadamente a rejeição local do SDK e enviar às Rules um valor possível com
 tipo inválido. A suíte completa precisa ser repetida fora do executor com essa
 correção; o ticket permanece bloqueado até o exit code final ser 0.
+
+Tentativa nesta retomada (2026-09-30): o runner confirmou Temurin 21.0.12.1 e
+iniciou o Firebase CLI, mas o Emulator encerrou antes dos testes com `failed to
+create a child event loop` / `Unable to establish loopback connection` / `Invalid
+argument: connect`. O runner também foi ajustado para validar corretamente a
+saída multilinha de `java -version`. Não serão repetidas tentativas no executor
+Codex; falta rodar a suíte corrigida em um PowerShell Windows normal.
