@@ -1,6 +1,6 @@
 # 03: Introduzir contrato de Local Esportivo, Rules transitórias e migração
 
-Status: blocked
+Status: resolved
 
 Blocked by: 02 — Preparar tooling confiável Firebase e fundação de Functions
 
@@ -17,13 +17,13 @@ Spec: §§ 5, 7, 8, 9, 13, 24 e Testing Decisions / Firestore Rules e Scripts.
 - [x] As Rules são expand–contract: não quebram leitores/escritores legados de eventos e mensagens nesta etapa.
 - [x] Script de migração possui dry-run, cria `parque_do_trabalhador` somente se ausente, é no-op se equivalente e aborta em divergência.
 - [x] O script usa valores aprovados, timestamps de servidor e credencial externa; não faz deploy nem cria segredo.
-- [ ] Testes do emulador cobrem papéis, queries, schema inválido, timestamps, status, acesso histórico e negações.
+- [x] Testes do emulador cobrem papéis, queries, schema inválido, timestamps, status, acesso histórico e negações.
 
 ## Verification
 
-- [ ] Executar suíte real de Rules no Emulator; bloqueada neste executor pelo loopback Java, apesar de JDK 21 ativo. Script de execução manual preparado em `tools/scripts/run-firestore-rules-tests.ps1`.
+- [x] Executar suíte real de Rules no Emulator; script de execução manual preparado em `tools/scripts/run-firestore-rules-tests.ps1`.
 - [x] Executar testes do script, incluindo create/no-op/divergência/dry-run.
-- [x] Validar sintaxe do arquivo de índices; a sintaxe das Rules aguarda a compilação do emulador.
+- [x] Validar sintaxe do arquivo de índices e compilar/executar as Rules pelo Emulator.
 
 ## Answer
 
@@ -86,3 +86,11 @@ mas o Emulator terminou antes de carregar as Rules com `Unable to establish
 loopback connection` / `Invalid argument: connect`; exit code do runner: 1.
 O ticket segue bloqueado até a suíte corrigida passar integralmente fora do
 Codex.
+
+Validação final manual fornecida em 2026-09-30: a suíte completa foi executada
+fora do Codex com Java 21 e o Firestore Emulator iniciou corretamente. Resultado:
+108 testes em 17 suítes; 108 passaram, zero falharam, foram cancelados,
+ignorados ou ficaram pendentes; exit code 0 (`Script exited successfully
+(code 0)`). O erro de loopback era específico do executor Codex. A correção
+de GeoPoint em `firestore.rules` foi validada pelo Emulator; nenhuma Rule foi
+alterada em resposta ao bloqueio ambiental. Ticket concluído.
