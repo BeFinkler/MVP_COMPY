@@ -4,6 +4,8 @@ import 'core/constants/admin_strings.dart';
 import 'core/routing/admin_router.dart';
 import 'core/theme/admin_theme.dart';
 import 'features/auth/presentation/admin_auth_feature.dart';
+import 'features/dashboard/data/admin_dashboard_repository.dart';
+import 'features/places/data/admin_places_repository.dart';
 
 typedef FirebaseInitializer = Future<void> Function();
 
@@ -69,21 +71,29 @@ class CompyAdminApp extends StatefulWidget {
   const CompyAdminApp({
     required this.authGateway,
     this.initialLocation,
+    this.dashboardRepository,
+    this.placesRepository,
     super.key,
   });
 
   final AdminAuthGateway authGateway;
   final String? initialLocation;
+  final AdminDashboardRepository? dashboardRepository;
+  final AdminPlacesRepository? placesRepository;
 
   @override
   State<CompyAdminApp> createState() => _CompyAdminAppState();
 }
 
 class _CompyAdminAppState extends State<CompyAdminApp> {
-  late final AdminAuthController _authController = AdminAuthController(widget.authGateway);
+  late final AdminAuthController _authController = AdminAuthController(
+    widget.authGateway,
+  );
   late final _router = createAdminRouter(
     authController: _authController,
     initialLocation: widget.initialLocation,
+    dashboardRepository: widget.dashboardRepository,
+    placesRepository: widget.placesRepository,
   );
 
   @override
@@ -163,10 +173,7 @@ class _AdminStartupScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    body,
-                    textAlign: TextAlign.center,
-                  ),
+                  Text(body, textAlign: TextAlign.center),
                   if (showProgress) ...<Widget>[
                     const SizedBox(height: 24),
                     const CircularProgressIndicator(),

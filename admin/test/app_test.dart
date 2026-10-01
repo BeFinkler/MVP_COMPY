@@ -5,41 +5,46 @@ import 'package:compy_admin/core/constants/admin_strings.dart';
 import 'package:compy_admin/core/routing/admin_router.dart';
 import 'package:compy_admin/core/shell/admin_shell.dart';
 import 'package:compy_admin/features/auth/presentation/admin_auth_feature.dart';
+import 'package:compy_admin/features/dashboard/data/admin_dashboard_repository.dart';
+import 'package:compy_admin/features/places/data/admin_places_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('guard protege deep links e mantém apenas as rotas públicas abertas', () {
-    expect(
-      redirectForAdminRoute(
-        location: '/users/a-user',
-        accessState: AdminAccessState.signedOut,
-      ),
-      '/login',
-    );
-    expect(
-      redirectForAdminRoute(
-        location: '/places/new',
-        accessState: AdminAccessState.unauthorized,
-      ),
-      '/unauthorized',
-    );
-    expect(
-      redirectForAdminRoute(
-        location: '/login',
-        accessState: AdminAccessState.authorized,
-      ),
-      '/dashboard',
-    );
-    expect(
-      redirectForAdminRoute(
-        location: '/unauthorized',
-        accessState: AdminAccessState.unauthorized,
-      ),
-      isNull,
-    );
-  });
+  test(
+    'guard protege deep links e mantém apenas as rotas públicas abertas',
+    () {
+      expect(
+        redirectForAdminRoute(
+          location: '/users/a-user',
+          accessState: AdminAccessState.signedOut,
+        ),
+        '/login',
+      );
+      expect(
+        redirectForAdminRoute(
+          location: '/places/new',
+          accessState: AdminAccessState.unauthorized,
+        ),
+        '/unauthorized',
+      );
+      expect(
+        redirectForAdminRoute(
+          location: '/login',
+          accessState: AdminAccessState.authorized,
+        ),
+        '/dashboard',
+      );
+      expect(
+        redirectForAdminRoute(
+          location: '/unauthorized',
+          accessState: AdminAccessState.unauthorized,
+        ),
+        isNull,
+      );
+    },
+  );
 
   test('breakpoint do shell separa sidebar permanente e recolhível', () {
     expect(usesDesktopAdminNavigation(839), isFalse);
@@ -67,33 +72,35 @@ void main() {
     controller.dispose();
   });
 
-  testWidgets('mostra carregamento até Firebase e autorização estarem resolvidos',
-      (tester) async {
-    final initialization = Completer<void>();
-    final authorization = Completer<AdminAuthCandidate?>();
+  testWidgets(
+    'mostra carregamento até Firebase e autorização estarem resolvidos',
+    (tester) async {
+      final initialization = Completer<void>();
+      final authorization = Completer<AdminAuthCandidate?>();
 
-    await tester.pumpWidget(
-      CompyAdminBootstrap(
-        initialize: () => initialization.future,
-        authGatewayFactory: () => _FakeAdminAuthGateway(
-          candidateFuture: authorization.future,
+      await tester.pumpWidget(
+        CompyAdminBootstrap(
+          initialize: () => initialization.future,
+          authGatewayFactory: () =>
+              _FakeAdminAuthGateway(candidateFuture: authorization.future),
         ),
-      ),
-    );
+      );
 
-    expect(find.text(AdminStrings.initializingTitle), findsOneWidget);
-    initialization.complete();
-    await tester.pump();
-    expect(find.text(AdminStrings.authorizationLoadingTitle), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text(AdminStrings.initializingTitle), findsOneWidget);
+      initialization.complete();
+      await tester.pump();
+      expect(find.text(AdminStrings.authorizationLoadingTitle), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-    authorization.complete(null);
-    await tester.pumpAndSettle();
-    expect(find.text(AdminStrings.loginTitle), findsOneWidget);
-  });
+      authorization.complete(null);
+      await tester.pumpAndSettle();
+      expect(find.text(AdminStrings.loginTitle), findsOneWidget);
+    },
+  );
 
-  testWidgets('login usa somente e-mail e senha e libera o shell autorizado',
-      (tester) async {
+  testWidgets('login usa somente e-mail e senha e libera o shell autorizado', (
+    tester,
+  ) async {
     final gateway = _FakeAdminAuthGateway(candidate: null)
       ..candidateAfterLogin = const AdminAuthCandidate(
         uid: 'admin-uid',
@@ -103,13 +110,24 @@ void main() {
         claims: <String, Object?>{'admin': true},
       );
 
-    await tester.pumpWidget(CompyAdminApp(authGateway: gateway));
+    await tester.pumpWidget(
+      CompyAdminApp(
+        authGateway: gateway,
+        dashboardRepository: _FakeAdminDashboardRepository(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text(AdminStrings.loginTitle), findsOneWidget);
     expect(find.textContaining('Google'), findsNothing);
-    await tester.enterText(find.widgetWithText(TextFormField, 'E-mail'), ' admin@compy.app ');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Senha'), 'secret');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'E-mail'),
+      ' admin@compy.app ',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Senha'),
+      'secret',
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Entrar'));
     await tester.pumpAndSettle();
 
@@ -119,9 +137,12 @@ void main() {
     expect(find.byTooltip('Sair'), findsOneWidget);
   });
 
-  testWidgets('deep link de usuário usa o mesmo guard no shell desktop',
-      (tester) async {
-    final authorizedGateway = _FakeAdminAuthGateway(candidate: _authorizedCandidate);
+  testWidgets('deep link de usuário usa o mesmo guard no shell desktop', (
+    tester,
+  ) async {
+    final authorizedGateway = _FakeAdminAuthGateway(
+      candidate: _authorizedCandidate,
+    );
     await tester.pumpWidget(
       CompyAdminApp(
         authGateway: authorizedGateway,
@@ -133,28 +154,62 @@ void main() {
     expect(find.byTooltip('Sair'), findsOneWidget);
   });
 
-  testWidgets('tela não autorizada oferece retorno ao login com foco acessível',
-      (tester) async {
-    final gateway = _FakeAdminAuthGateway(
-      candidate: const AdminAuthCandidate(
-        uid: 'unverified-admin',
-        email: 'admin@compy.app',
-        emailVerified: false,
-        providerIds: <String>{'password'},
-        claims: <String, Object?>{'admin': true},
+  testWidgets('atalho de locais inativos aplica o filtro explicitamente', (
+    tester,
+  ) async {
+    final gateway = _FakeAdminAuthGateway(candidate: _authorizedCandidate);
+    final placesRepository = _FakeAdminPlacesRepository();
+    await tester.pumpWidget(
+      CompyAdminApp(
+        authGateway: gateway,
+        dashboardRepository: _FakeAdminDashboardRepository(),
+        placesRepository: placesRepository,
+        initialLocation: '/dashboard',
       ),
     );
-
-    await tester.pumpWidget(CompyAdminApp(authGateway: gateway));
     await tester.pumpAndSettle();
-
-    expect(find.text(AdminStrings.unauthorizedTitle), findsOneWidget);
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    expect(find.widgetWithText(FilledButton, 'Voltar ao login'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Voltar ao login'));
+    expect(find.text('Visão geral'), findsOneWidget);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -600));
     await tester.pumpAndSettle();
-    expect(find.text(AdminStrings.loginTitle), findsOneWidget);
+    await tester.tap(find.text('Ver locais inativos'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(placesRepository.filters, hasLength(1));
+    expect(
+      placesRepository.filters.single.status,
+      AdminPlaceStatusFilter.inactive,
+    );
+    expect(find.text('Locais Esportivos'), findsWidgets);
   });
+
+  testWidgets(
+    'tela não autorizada oferece retorno ao login com foco acessível',
+    (tester) async {
+      final gateway = _FakeAdminAuthGateway(
+        candidate: const AdminAuthCandidate(
+          uid: 'unverified-admin',
+          email: 'admin@compy.app',
+          emailVerified: false,
+          providerIds: <String>{'password'},
+          claims: <String, Object?>{'admin': true},
+        ),
+      );
+
+      await tester.pumpWidget(CompyAdminApp(authGateway: gateway));
+      await tester.pumpAndSettle();
+
+      expect(find.text(AdminStrings.unauthorizedTitle), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      expect(
+        find.widgetWithText(FilledButton, 'Voltar ao login'),
+        findsOneWidget,
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Voltar ao login'));
+      await tester.pumpAndSettle();
+      expect(find.text(AdminStrings.loginTitle), findsOneWidget);
+    },
+  );
 }
 
 const _authorizedCandidate = AdminAuthCandidate(
@@ -203,5 +258,28 @@ class _FakeAdminAuthGateway implements AdminAuthGateway {
   @override
   Future<void> useSessionPersistence() async {
     usedSessionPersistence = true;
+  }
+}
+
+class _FakeAdminDashboardRepository implements AdminDashboardRepository {
+  @override
+  Future<AdminDashboardMetrics> loadMetrics() async =>
+      const AdminDashboardMetrics(
+        profileCount: 0,
+        activePlaceCount: 0,
+        inactivePlaceCount: 0,
+      );
+}
+
+class _FakeAdminPlacesRepository implements AdminPlacesRepository {
+  final List<AdminPlacesFilters> filters = <AdminPlacesFilters>[];
+
+  @override
+  Stream<AdminPlacesPageSnapshot> watchPage(
+    AdminPlacesFilters filter, {
+    AdminPlaceCursor? after,
+  }) {
+    filters.add(filter);
+    return const Stream<AdminPlacesPageSnapshot>.empty();
   }
 }

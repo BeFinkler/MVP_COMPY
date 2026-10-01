@@ -2,6 +2,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/admin_auth_feature.dart';
 import '../../features/auth/presentation/admin_auth_screens.dart';
+import '../../features/dashboard/data/admin_dashboard_repository.dart';
+import '../../features/dashboard/presentation/admin_dashboard_page.dart';
+import '../../features/places/data/admin_places_repository.dart';
+import '../../features/places/presentation/admin_places_page.dart';
 import '../shell/admin_shell.dart';
 
 const _publicRoutes = <String>{'/login', '/unauthorized'};
@@ -15,14 +19,18 @@ String? redirectForAdminRoute({
 
   return switch (accessState) {
     AdminAccessState.authorized => isPublicRoute ? '/dashboard' : null,
-    AdminAccessState.unauthorized => location == '/unauthorized' ? null : '/unauthorized',
-    AdminAccessState.signedOut || AdminAccessState.loading => isPublicRoute ? null : '/login',
+    AdminAccessState.unauthorized =>
+      location == '/unauthorized' ? null : '/unauthorized',
+    AdminAccessState.signedOut ||
+    AdminAccessState.loading => isPublicRoute ? null : '/login',
   };
 }
 
 GoRouter createAdminRouter({
   required AdminAuthController authController,
   String? initialLocation,
+  AdminDashboardRepository? dashboardRepository,
+  AdminPlacesRepository? placesRepository,
 }) {
   return GoRouter(
     initialLocation: initialLocation ?? '/dashboard',
@@ -34,34 +42,47 @@ GoRouter createAdminRouter({
     routes: <RouteBase>[
       GoRoute(
         path: '/login',
-        builder: (context, state) => AdminLoginScreen(controller: authController),
+        builder: (context, state) =>
+            AdminLoginScreen(controller: authController),
       ),
       GoRoute(
         path: '/unauthorized',
-        builder: (context, state) => AdminUnauthorizedScreen(controller: authController),
+        builder: (context, state) =>
+            AdminUnauthorizedScreen(controller: authController),
       ),
       GoRoute(
         path: '/dashboard',
         builder: (context, state) => AdminShell(
           controller: authController,
           location: state.uri.path,
-          child: const AdminRoutePlaceholder(title: 'Dashboard'),
+          child: AdminDashboardPage(repository: dashboardRepository),
         ),
       ),
       GoRoute(
         path: '/places',
-        builder: (context, state) => AdminShell(
-          controller: authController,
-          location: state.uri.path,
-          child: const AdminRoutePlaceholder(title: 'Locais Esportivos'),
-        ),
+        builder: (context, state) {
+          final initialStatus =
+              state.uri.queryParameters['status'] == 'inactive'
+              ? AdminPlaceStatusFilter.inactive
+              : AdminPlaceStatusFilter.all;
+          return AdminShell(
+            controller: authController,
+            location: state.uri.path,
+            child: AdminPlacesPage(
+              repository: placesRepository,
+              initialStatus: initialStatus,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: '/places/new',
         builder: (context, state) => AdminShell(
           controller: authController,
           location: state.uri.path,
-          child: const AdminRoutePlaceholder(title: 'Cadastrar Local Esportivo'),
+          child: const AdminRoutePlaceholder(
+            title: 'Cadastrar Local Esportivo',
+          ),
         ),
       ),
       GoRoute(
@@ -69,7 +90,9 @@ GoRouter createAdminRouter({
         builder: (context, state) => AdminShell(
           controller: authController,
           location: state.uri.path,
-          child: const AdminRoutePlaceholder(title: 'Detalhes do Local Esportivo'),
+          child: const AdminRoutePlaceholder(
+            title: 'Detalhes do Local Esportivo',
+          ),
         ),
       ),
       GoRoute(

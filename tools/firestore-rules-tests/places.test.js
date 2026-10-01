@@ -22,6 +22,8 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  startAt,
+  endAt,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -124,6 +126,47 @@ describe('places — leitura por papel', () => {
   it('Administrador lista ativos e inativos', async () => {
     await assertSucceeds(getDocs(query(collection(asAdmin(), 'places'), orderBy('nameLower'))));
   });
+
+  const adminPrefixQueryCases = [
+    ['somente prefixo', []],
+    ['status', [where('status', '==', 'active')]],
+    ['modalidade', [where('sports', 'array-contains', 'futebol')]],
+    ['cidade', [where('address.cityLower', '==', 'taquara')]],
+    [
+      'modalidade e status',
+      [where('sports', 'array-contains', 'futebol'), where('status', '==', 'active')],
+    ],
+    [
+      'status e cidade',
+      [where('status', '==', 'inactive'), where('address.cityLower', '==', 'taquara')],
+    ],
+    [
+      'modalidade e cidade',
+      [where('sports', 'array-contains', 'futebol'), where('address.cityLower', '==', 'taquara')],
+    ],
+    [
+      'modalidade, status e cidade',
+      [
+        where('sports', 'array-contains', 'futebol'),
+        where('status', '==', 'active'),
+        where('address.cityLower', '==', 'taquara'),
+      ],
+    ],
+  ];
+
+  for (const [description, filters] of adminPrefixQueryCases) {
+    it(`Administrador executa query por prefixo combinada com ${description}`, async () => {
+      const placesQuery = query(
+        collection(asAdmin(), 'places'),
+        ...filters,
+        orderBy('nameLower'),
+        startAt('parque'),
+        endAt('parque\uf8ff'),
+        limit(20),
+      );
+      await assertSucceeds(getDocs(placesQuery));
+    });
+  }
 
   it('deslogado não lê Local Esportivo', async () => {
     await assertFails(getDoc(doc(anonymous(), 'places', PLACE_ACTIVE)));
