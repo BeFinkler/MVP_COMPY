@@ -306,7 +306,7 @@ Regras e fluxo:
 
 - Mensagem de texto comum não contém `placeId` nem `placeSnapshot` e conserva o comportamento atual.
 - Nova Mensagem de Local contém `placeId` não vazio e snapshot completo correspondente ao documento atual.
-- O envio valida em leitura online que o local existe e está `active`; o batch mantém a criação da mensagem e a atualização do rodapé da conversa.
+- O envio usa uma transação Firestore online: lê o local atual, exige `active`, deriva o snapshot dessa leitura e grava mensagem e rodapé da conversa atomicamente. A transação falha offline e não é enfileirada; não usar WriteBatch neste fluxo, pois batches do SDK podem ser aplicados/enfileirados offline ([semântica oficial de transações e batches](https://firebase.google.com/docs/firestore/manage-data/transactions)).
 - As Rules consultam `places/{placeId}` no commit, exigem local ativo, remetente correto, associação à conversa e snapshot exato.
 - Sem conexão, o compartilhamento não é enfileirado. O seletor/conteúdo permanece aberto e informa que é necessário reconectar.
 - Na leitura, o card tenta resolver o documento atual. Se acessível, usa nome, imagem, modalidade e status atuais. Se não puder carregar, usa o snapshot.

@@ -308,9 +308,50 @@ service cloud.firestore {
       allow delete: if false;
 
       match /messages/{messageId} {
+        function hasActivePlaceForMessage() {
+          return request.resource.data.placeId is string
+              && request.resource.data.placeId.size() > 0
+              && exists(/databases/$(database)/documents/places/$(request.resource.data.placeId))
+              && get(/databases/$(database)/documents/places/$(request.resource.data.placeId)).data.status == 'active';
+        }
+
+        function validLegacyPlaceMessage() {
+          // Escritores já publicados podem continuar gravando placeId-only
+          // durante a janela expand; novas mensagens do app usam snapshot.
+          return request.resource.data.keys().hasAll(
+                   ['senderId', 'text', 'sentAt', 'placeId'])
+              && request.resource.data.keys().hasOnly(
+                   ['senderId', 'text', 'sentAt', 'placeId'])
+              && request.resource.data.placeId is string
+              && request.resource.data.placeId.size() > 0;
+        }
+
+        function validPlaceMessageSnapshot() {
+          return request.resource.data.keys().hasAll(
+                   ['senderId', 'text', 'sentAt', 'placeId', 'placeSnapshot'])
+              && request.resource.data.keys().hasOnly(
+                   ['senderId', 'text', 'sentAt', 'placeId', 'placeSnapshot'])
+              && hasActivePlaceForMessage()
+              && request.resource.data.placeSnapshot is map
+              && request.resource.data.placeSnapshot.keys().hasAll(
+                   ['name', 'imageUrl', 'primarySport'])
+              && request.resource.data.placeSnapshot.keys().hasOnly(
+                   ['name', 'imageUrl', 'primarySport'])
+              && request.resource.data.placeSnapshot.name
+                 == get(/databases/$(database)/documents/places/$(request.resource.data.placeId)).data.name
+              && request.resource.data.placeSnapshot.imageUrl
+                 == get(/databases/$(database)/documents/places/$(request.resource.data.placeId)).data.imageUrl
+              && request.resource.data.placeSnapshot.primarySport
+                 == get(/databases/$(database)/documents/places/$(request.resource.data.placeId)).data.primarySport;
+        }
+
         allow read: if isMemberOfParent();
         allow create: if isMemberOfParent()
-                      && request.resource.data.senderId == request.auth.uid;
+                      && request.resource.data.senderId == request.auth.uid
+                      && (!('placeId' in request.resource.data)
+                          && !('placeSnapshot' in request.resource.data)
+                          || validLegacyPlaceMessage()
+                          || validPlaceMessageSnapshot());
         // Mensagem enviada não se edita nem se apaga.
         allow update, delete: if false;
       }
