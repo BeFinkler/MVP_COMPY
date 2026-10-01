@@ -6,6 +6,7 @@
  * cresça junto de `participants`. Errar aqui trava o botão "Participar"
  * em produção com PERMISSION_DENIED — daí a suíte.
  */
+import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { after, before, beforeEach, describe, it } from 'node:test';
 import {

@@ -1,8 +1,8 @@
 # 06: Criar Eventos Esportivos com snapshot imutável de Local Esportivo
 
-Status: blocked
+Status: resolved
 
-Blocked by: None (03 e 04 resolvidos); validação real das Firestore Rules no Emulator ainda pendente por bloqueio de loopback no executor do Codex.
+Blocked by: None (03 e 04 resolvidos).
 
 Spec: §§ 11, 13, 21 e Testing Decisions / Firestore Rules e Mobile.
 
@@ -21,8 +21,8 @@ Spec: §§ 11, 13, 21 e Testing Decisions / Firestore Rules e Mobile.
 ## Verification
 
 - [x] Executar testes Dart afetados e `flutter analyze`.
-- [ ] Executar a suíte real de Rules no Emulator.
+- [x] Executar a suíte real de Rules no Emulator.
 
-Validação mobile desta implementação: `flutter analyze lib/features/events` sem issues (exit code 0); suíte focada de Eventos/snapshots com 28 testes aprovados (exit code 0); suíte mobile completa com 196 testes aprovados (exit code 0). `node --check tools/firestore-rules-tests/events.test.js` passou (exit code 0); `git diff --check` passou (exit code 0).
+Validação mobile: `flutter analyze lib/features/events` sem issues (exit code 0); suíte focada de Eventos/snapshots com 28 testes aprovados (exit code 0); suíte mobile completa com 196 testes aprovados (exit code 0). `node --check tools/firestore-rules-tests/events.test.js` e `git diff --check` passaram (exit code 0).
 
-Bloqueio de validação: a tentativa real no executor do Codex falhou antes de iniciar os testes. `tools/firestore-rules-tests/firestore-debug.log` registra `Unable to establish loopback connection` / `Invalid argument: connect` ao abrir o selector Java Netty. Nenhuma assertion das Rules foi executada nesta execução. Rode `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Users\Bernardo Finkler\StudioProjects\MVP_COMPY\tools\scripts\run-firestore-rules-tests.ps1"` em um PowerShell Windows normal e confirme exit code 0 antes de resolver este ticket.
+Validação completa das Firestore Rules: execução manual fora do Codex em PowerShell com JDK 21 e Emulator iniciado com sucesso; 116 testes em 17 suítes, 116 passaram, zero falhas/cancelamentos, exit code 0 (`Script exited successfully (code 0)`). A execução anterior apontou `ReferenceError: assert is not defined` no teste histórico; o harness foi corrigido adicionando `node:assert/strict` e a suíte completa foi repetida com sucesso. As correções finais de runner/harness/documentação não alteraram `firestore.rules`.
