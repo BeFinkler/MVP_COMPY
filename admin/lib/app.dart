@@ -6,6 +6,7 @@ import 'core/theme/admin_theme.dart';
 import 'features/auth/presentation/admin_auth_feature.dart';
 import 'features/dashboard/data/admin_dashboard_repository.dart';
 import 'features/places/data/admin_places_repository.dart';
+import 'features/users/data/admin_users_repository.dart';
 
 typedef FirebaseInitializer = Future<void> Function();
 
@@ -73,6 +74,7 @@ class CompyAdminApp extends StatefulWidget {
     this.initialLocation,
     this.dashboardRepository,
     this.placesRepository,
+    this.usersRepository,
     super.key,
   });
 
@@ -80,6 +82,7 @@ class CompyAdminApp extends StatefulWidget {
   final String? initialLocation;
   final AdminDashboardRepository? dashboardRepository;
   final AdminPlacesRepository? placesRepository;
+  final AdminUsersRepository? usersRepository;
 
   @override
   State<CompyAdminApp> createState() => _CompyAdminAppState();
@@ -94,6 +97,7 @@ class _CompyAdminAppState extends State<CompyAdminApp> {
     initialLocation: widget.initialLocation,
     dashboardRepository: widget.dashboardRepository,
     placesRepository: widget.placesRepository,
+    usersRepository: widget.usersRepository,
   );
 
   @override

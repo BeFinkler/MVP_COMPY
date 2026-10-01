@@ -7,6 +7,7 @@ import 'package:compy_admin/core/shell/admin_shell.dart';
 import 'package:compy_admin/features/auth/presentation/admin_auth_feature.dart';
 import 'package:compy_admin/features/dashboard/data/admin_dashboard_repository.dart';
 import 'package:compy_admin/features/places/data/admin_places_repository.dart';
+import 'package:compy_admin/features/users/data/admin_users_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -147,6 +148,7 @@ void main() {
       CompyAdminApp(
         authGateway: authorizedGateway,
         initialLocation: '/users/a-user',
+        usersRepository: _FakeAdminUsersRepository(),
       ),
     );
     await tester.pumpAndSettle();
@@ -282,4 +284,36 @@ class _FakeAdminPlacesRepository implements AdminPlacesRepository {
     filters.add(filter);
     return const Stream<AdminPlacesPageSnapshot>.empty();
   }
+}
+
+class _FakeAdminUsersRepository implements AdminUsersRepository {
+  @override
+  Future<AdminUserDetailsResult?> findExact(
+    AdminUserSearchType type,
+    String query,
+  ) async => null;
+
+  @override
+  Future<AdminUserDetailsResult> loadDetails(String uid) async =>
+      AdminUserDetailsResult(
+        uid: uid,
+        profile: null,
+        auth: null,
+        profileNotFound: true,
+        profileUnavailable: false,
+        profileFromCache: false,
+        authNotFound: true,
+        authUnavailable: false,
+      );
+
+  @override
+  Future<AdminUsersPageSnapshot> searchProfiles(
+    AdminUserSearchType type,
+    String query, {
+    AdminUserCursor? after,
+  }) async => const AdminUsersPageSnapshot(
+    items: <AdminUserListItem>[],
+    cursor: null,
+    isFromCache: false,
+  );
 }

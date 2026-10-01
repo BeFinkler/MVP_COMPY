@@ -6,6 +6,8 @@ import '../../features/dashboard/data/admin_dashboard_repository.dart';
 import '../../features/dashboard/presentation/admin_dashboard_page.dart';
 import '../../features/places/data/admin_places_repository.dart';
 import '../../features/places/presentation/admin_places_page.dart';
+import '../../features/users/data/admin_users_repository.dart';
+import '../../features/users/presentation/admin_users_pages.dart';
 import '../shell/admin_shell.dart';
 
 const _publicRoutes = <String>{'/login', '/unauthorized'};
@@ -31,6 +33,7 @@ GoRouter createAdminRouter({
   String? initialLocation,
   AdminDashboardRepository? dashboardRepository,
   AdminPlacesRepository? placesRepository,
+  AdminUsersRepository? usersRepository,
 }) {
   return GoRouter(
     initialLocation: initialLocation ?? '/dashboard',
@@ -100,16 +103,24 @@ GoRouter createAdminRouter({
         builder: (context, state) => AdminShell(
           controller: authController,
           location: state.uri.path,
-          child: const AdminRoutePlaceholder(title: 'Usuários'),
+          child: AdminUsersPage(repository: usersRepository),
         ),
       ),
       GoRoute(
         path: '/users/:uid',
-        builder: (context, state) => AdminShell(
-          controller: authController,
-          location: state.uri.path,
-          child: const AdminRoutePlaceholder(title: 'Detalhes do Usuário'),
-        ),
+        builder: (context, state) {
+          final uid = state.pathParameters['uid']!;
+          final extra = state.extra;
+          return AdminShell(
+            controller: authController,
+            location: state.uri.path,
+            child: AdminUserDetailsPage(
+              uid: uid,
+              repository: usersRepository,
+              initialDetails: extra is AdminUserDetailsResult ? extra : null,
+            ),
+          );
+        },
       ),
     ],
   );
