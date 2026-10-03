@@ -430,8 +430,8 @@ describe('messages', () => {
     );
   });
 
-  it('mantém compatibilidade transitória com escritor placeId-only', async () => {
-    await assertSucceeds(
+  it('nega nova mensagem de local no formato placeId-only transitório', async () => {
+    await assertFails(
       addDoc(mensagens(as(JOAO)), {
         senderId: JOAO,
         text: 'Encaminhou um local...',
@@ -439,6 +439,23 @@ describe('messages', () => {
         placeId: PLACE,
       }),
     );
+  });
+
+  it('membro continua lendo mensagem legada com placeId sem snapshot', async () => {
+    const legacyId = 'legacy_place_message';
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'conversations', CONVERSA, 'messages', legacyId), {
+        senderId: JOAO,
+        text: 'Encaminhou um local...',
+        sentAt: new Date(),
+        placeId: PLACE,
+      });
+    });
+
+    const snapshot = await getDoc(doc(as(JOAO), 'conversations', CONVERSA, 'messages', legacyId));
+    assert.equal(snapshot.exists(), true);
+    assert.equal(snapshot.data().placeId, PLACE);
+    assert.equal('placeSnapshot' in snapshot.data(), false);
   });
 
   it('membro não envia mensagem assinada por outro', async () => {

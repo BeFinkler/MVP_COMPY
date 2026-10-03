@@ -72,7 +72,7 @@ Future<List<SportPlace>> getAll() async {
 
 Confirma a observação levantada: o `CustomSportMarker` **não é aplicado** aos locais de `event_location.dart` — o `MarkerLayer` da `MapsPage` só itera sobre `placesProvider`, que vem de `SportPlace`. `EventLocation` nunca chega perto do mapa.
 
-Os dois catálogos divergem nas coordenadas do mesmo lugar: `MockPlaces` tem "Campo do Parque do Trabalhador" em `(-29.6520, -50.7825)` e `EventLocation.parqueDoTrabalhador` em `(-29.656276, -50.787726)`. Enquanto forem duas listas, todo local novo precisa ser cadastrado duas vezes.
+À época do diagnóstico (2026-08-08), os dois catálogos divergiam nas coordenadas do mesmo lugar: `MockPlaces` tinha "Campo do Parque do Trabalhador" em `(-29.6520, -50.7825)` e `EventLocation.parqueDoTrabalhador` em `(-29.656276, -50.787726)`. Essa fonte estática histórica foi substituída pela coleção Firestore `places`; mobile e painel agora compartilham essa fonte e o ID de migração `parque_do_trabalhador`.
 
 ### 3. A tela de detalhes do local já está pronta
 

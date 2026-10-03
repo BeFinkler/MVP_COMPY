@@ -139,27 +139,44 @@ function entrar(db, uid, { remainingSpots }) {
 }
 
 describe('events — criar', () => {
-  it('o criador cria o próprio evento', async () => {
-    await assertSucceeds(
-      addDoc(collection(as(CRIADOR), 'events'), eventoNovo(CRIADOR)),
-    );
+  it('nega nova criação de evento pelo writer legado sem placeSnapshot', async () => {
+    await assertFails(addDoc(collection(as(CRIADOR), 'events'), eventoNovo(CRIADOR)));
+    await assertFails(addDoc(collection(as(CRIADOR), 'events'), {
+      ...eventoNovo(CRIADOR),
+      placeId: PLACE,
+    }));
+    const snapshotSemId = {
+      ...eventoNovo(CRIADOR),
+      placeSnapshot: {
+        name: 'Quadra Central',
+        address,
+        coordinates: placeCoordinates,
+      },
+    };
+    await assertFails(addDoc(collection(as(CRIADOR), 'events'), snapshotSemId));
   });
 
   it('ninguém cria evento em nome de outro', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'places', PLACE), placeDocument());
+    });
     await assertFails(
-      addDoc(collection(as(VISITANTE), 'events'), eventoNovo(CRIADOR)),
+      addDoc(collection(as(VISITANTE), 'events'), eventoComLocal(CRIADOR)),
     );
   });
 
   it('participantIds não pode nascer com terceiros dentro', async () => {
-    const forjado = eventoNovo(CRIADOR);
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'places', PLACE), placeDocument());
+    });
+    const forjado = eventoComLocal(CRIADOR);
     forjado.participantIds = [CRIADOR, VISITANTE];
     await assertFails(addDoc(collection(as(CRIADOR), 'events'), forjado));
   });
 
   it('deslogado não cria evento', async () => {
     await assertFails(
-      addDoc(collection(anonimo(), 'events'), eventoNovo(CRIADOR)),
+      addDoc(collection(anonimo(), 'events'), eventoComLocal(CRIADOR)),
     );
   });
 

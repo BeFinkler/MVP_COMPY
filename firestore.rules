@@ -199,17 +199,6 @@ service cloud.firestore {
                == place.name + ', ' + place.address.city;
       }
 
-      // Durante a janela expand–contract, documentos legados podem continuar
-      // sendo criados pelo escritor antigo. Presença parcial do novo contrato
-      // nunca é aceita.
-      function eventCreationPlaceContractIsValid() {
-        return (!request.resource.data.keys().hasAny(['placeId'])
-                && !request.resource.data.keys().hasAny(['placeSnapshot']))
-            || (request.resource.data.keys().hasAll(
-                  ['placeId', 'placeSnapshot'])
-                && newPlaceSnapshotMatchesCurrentPlace());
-      }
-
       function historicalEventFieldsUnchanged() {
         return !changed().hasAny(['sport', 'placeId', 'placeSnapshot']);
       }
@@ -259,7 +248,7 @@ service cloud.firestore {
                     && request.resource.data.totalSpots is int
                     && request.resource.data.totalSpots > 0
                     && spotsCoherent()
-                    && eventCreationPlaceContractIsValid();
+                    && newPlaceSnapshotMatchesCurrentPlace();
       allow update: if (isCreator()
                        && ownerUnchanged()
                        && spotsCoherent()
@@ -315,17 +304,6 @@ service cloud.firestore {
               && get(/databases/$(database)/documents/places/$(request.resource.data.placeId)).data.status == 'active';
         }
 
-        function validLegacyPlaceMessage() {
-          // Escritores já publicados podem continuar gravando placeId-only
-          // durante a janela expand; novas mensagens do app usam snapshot.
-          return request.resource.data.keys().hasAll(
-                   ['senderId', 'text', 'sentAt', 'placeId'])
-              && request.resource.data.keys().hasOnly(
-                   ['senderId', 'text', 'sentAt', 'placeId'])
-              && request.resource.data.placeId is string
-              && request.resource.data.placeId.size() > 0;
-        }
-
         function validPlaceMessageSnapshot() {
           return request.resource.data.keys().hasAll(
                    ['senderId', 'text', 'sentAt', 'placeId', 'placeSnapshot'])
@@ -348,9 +326,8 @@ service cloud.firestore {
         allow read: if isMemberOfParent();
         allow create: if isMemberOfParent()
                       && request.resource.data.senderId == request.auth.uid
-                      && (!('placeId' in request.resource.data)
-                          && !('placeSnapshot' in request.resource.data)
-                          || validLegacyPlaceMessage()
+                      && ((!('placeId' in request.resource.data)
+                           && !('placeSnapshot' in request.resource.data))
                           || validPlaceMessageSnapshot());
         // Mensagem enviada não se edita nem se apaga.
         allow update, delete: if false;
@@ -358,9 +335,8 @@ service cloud.firestore {
     }
 
     // ── places ───────────────────────────────────────────────────────
-    // Contrato transitório do Painel Administrativo. Eventos e mensagens ainda
-    // preservam seus escritores legados nesta etapa do expand–contract; o
-    // mobile novo só passa a depender de `places` nos tickets posteriores.
+    // Contrato final de Locais Esportivos. Novos eventos e mensagens de local
+    // precisam usar documentos ativos e snapshots validados no commit.
     match /places/{placeId} {
       function validRequiredString(value, maximum) {
         return value is string && value.size() > 0 && value.size() <= maximum;

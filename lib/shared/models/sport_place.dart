@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../../core/constants/app_assets.dart';
 import '../../core/utils/text_normalizer.dart';
 import 'sport.dart';
 
@@ -156,9 +155,6 @@ class PlaceAddress extends Equatable {
 }
 
 /// Local Esportivo parseado do contrato Firestore `places/{placeId}`.
-///
-/// `all`/`byId` ficam temporariamente como fixtures legadas até o ticket 17;
-/// a produção passa a obter dados pelo [PlacesRepository].
 class SportPlace extends Equatable {
   const SportPlace({
     required this.id,
@@ -295,43 +291,6 @@ class SportPlace extends Equatable {
       // Documento incompatível/malformado é ignorado sem derrubar o stream.
       return null;
     }
-  }
-
-  /// Parque do Trabalhador é mantido como fixture até a migração mobile final.
-  static const SportPlace parqueDoTrabalhador = SportPlace(
-    id: 'parque_do_trabalhador',
-    name: 'Parque do Trabalhador',
-    nameLower: 'parque do trabalhador',
-    address: PlaceAddress(
-      street: '',
-      city: 'Taquara',
-      cityLower: 'taquara',
-      state: 'RS',
-    ),
-    coordinates: LatLng(-29.656276729317323, -50.787726691670045),
-    sports: <Sport>[
-      Sport.futebol,
-      Sport.basquete,
-      Sport.futsal,
-      Sport.volei,
-      Sport.corrida,
-      Sport.ciclismo,
-      Sport.caminhada,
-    ],
-    primarySport: Sport.futebol,
-    status: PlaceStatus.active,
-    imageUrl: AppAssets.soccerBanner,
-    description: 'Parque público de Taquara, com campo de futebol, quadras e '
-        'pista usada para corrida, ciclismo e caminhada.',
-  );
-
-  static const List<SportPlace> all = <SportPlace>[parqueDoTrabalhador];
-
-  static SportPlace? byId(String id) {
-    for (final place in all) {
-      if (place.id == id) return place;
-    }
-    return null;
   }
 
   @override

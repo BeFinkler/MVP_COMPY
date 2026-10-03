@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,8 +13,6 @@ import 'package:mvp_compy/features/maps/domain/repositories/places_repository.da
 import 'package:mvp_compy/features/maps/presentation/providers/maps_providers.dart';
 import 'package:mvp_compy/features/profile/presentation/providers/profile_providers.dart';
 import 'package:mvp_compy/shared/models/event.dart';
-import 'package:mvp_compy/shared/models/paged_result.dart';
-import 'package:mvp_compy/shared/models/skill_level.dart';
 import 'package:mvp_compy/shared/models/sport.dart';
 import 'package:mvp_compy/shared/models/sport_place.dart';
 import 'package:mvp_compy/shared/models/user_summary.dart';
