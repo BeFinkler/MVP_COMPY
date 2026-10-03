@@ -1,3 +1,6 @@
+import 'dart:math';
+
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -251,7 +254,10 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
               );
             }
             if (!snapshot.hasData) return const _UsersSkeleton();
-            return _AdminUserDetailsContent(result: snapshot.data!);
+            return _AdminUserDetailsContent(
+              result: snapshot.data!,
+              repository: _repository,
+            );
           },
         ),
       ],
@@ -259,13 +265,210 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
   }
 }
 
-class _AdminUserDetailsContent extends StatelessWidget {
-  const _AdminUserDetailsContent({required this.result});
+class _AdminUserDetailsContent extends StatefulWidget {
+  const _AdminUserDetailsContent({
+    required this.result,
+    required this.repository,
+  });
 
   final AdminUserDetailsResult result;
+  final AdminUsersRepository repository;
+
+  @override
+  State<_AdminUserDetailsContent> createState() =>
+      _AdminUserDetailsContentState();
+}
+
+class _AdminUserDetailsContentState extends State<_AdminUserDetailsContent> {
+  late AdminUserDetailsResult _result = widget.result;
+  final TextEditingController _reasonController = TextEditingController();
+  bool _submitting = false;
+  bool _actionsBlocked = false;
+  bool _showReasonError = false;
+  String? _actionError;
+  String? _pendingSignature;
+  String? _pendingOperationId;
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _requestAction(AdminUserSuspensionAction action) async {
+    if (_actionsBlocked || _submitting) return;
+    final reason = normalizeAdminSuspensionReason(_reasonController.text);
+    if (reason.length < 10 || reason.length > 500) {
+      setState(() {
+        _showReasonError = true;
+        _actionError = null;
+      });
+      return;
+    }
+    setState(() {
+      _showReasonError = false;
+      _actionError = null;
+    });
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          action == AdminUserSuspensionAction.suspend
+              ? 'Confirmar suspensão'
+              : 'Confirmar reativação',
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              SelectableText('UID: ${_result.uid}'),
+              const SizedBox(height: 12),
+              Text('Motivo: $reason'),
+              const SizedBox(height: 12),
+              Text(
+                action == AdminUserSuspensionAction.suspend
+                    ? 'Novos logins e renovações de sessão serão impedidos após a operação. Um ID token já emitido ainda pode ser aceito até expirar; esta ação não é um bloqueio instantâneo de todas as sessões.'
+                    : 'A conta poderá fazer login novamente. Tokens de sessões anteriores não serão restaurados.',
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              action == AdminUserSuspensionAction.suspend
+                  ? 'Confirmar suspensão'
+                  : 'Confirmar reativação',
+            ),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    await _executeAction(action, reason);
+  }
+
+  Future<void> _executeAction(
+    AdminUserSuspensionAction action,
+    String reason,
+  ) async {
+    final signature = '${_result.uid}\u0000${action.name}\u0000$reason';
+    final operationId = _pendingSignature == signature
+        ? _pendingOperationId!
+        : _newUuidV4();
+    setState(() {
+      _submitting = true;
+      _actionError = null;
+      _pendingSignature = signature;
+      _pendingOperationId = operationId;
+    });
+    try {
+      final response = await widget.repository.setUserSuspension(
+        uid: _result.uid,
+        action: action,
+        reason: reason,
+        operationId: operationId,
+      );
+      final desiredDisabled = action == AdminUserSuspensionAction.suspend;
+      if (response.uid != _result.uid ||
+          response.action != action ||
+          response.disabled != desiredDisabled) {
+        throw const FormatException(
+          'A resposta da operação não corresponde à ação solicitada.',
+        );
+      }
+      final auth = _result.auth!;
+      setState(() {
+        _result = AdminUserDetailsResult(
+          uid: _result.uid,
+          profile: _result.profile,
+          auth: AdminUserAuthDetails(
+            uid: auth.uid,
+            email: auth.email,
+            emailVerified: auth.emailVerified,
+            providerIds: auth.providerIds,
+            createdAt: auth.createdAt,
+            lastSignInAt: auth.lastSignInAt,
+            disabled: response.disabled,
+          ),
+          profileNotFound: _result.profileNotFound,
+          profileUnavailable: _result.profileUnavailable,
+          profileFromCache: _result.profileFromCache,
+          authNotFound: _result.authNotFound,
+          authUnavailable: _result.authUnavailable,
+        );
+        _pendingSignature = null;
+        _pendingOperationId = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              action == AdminUserSuspensionAction.suspend
+                  ? 'Conta suspensa.'
+                  : 'Conta reativada.',
+            ),
+          ),
+        );
+      }
+    } on Object catch (error) {
+      final operationStatus =
+          error is FirebaseFunctionsException && error.details is Map
+          ? (error.details as Map)['operationStatus']
+          : null;
+      final terminal = _isTerminalFailure(error) || operationStatus == 'failed';
+      final code = error is FirebaseFunctionsException ? error.code : null;
+      setState(() {
+        _actionError = _safeActionError(error);
+        if (terminal) {
+          _pendingSignature = null;
+          _pendingOperationId = null;
+        }
+        if (code == 'permission-denied') _actionsBlocked = true;
+        if (code == 'not-found') {
+          _result = AdminUserDetailsResult(
+            uid: _result.uid,
+            profile: _result.profile,
+            auth: null,
+            profileNotFound: _result.profileNotFound,
+            profileUnavailable: _result.profileUnavailable,
+            profileFromCache: _result.profileFromCache,
+            authNotFound: true,
+            authUnavailable: false,
+          );
+        }
+      });
+      if (code == 'failed-precondition' && mounted) {
+        try {
+          final refreshed = await widget.repository.loadDetails(_result.uid);
+          if (!mounted) return;
+          final previousDisabled = _result.auth?.disabled;
+          setState(() {
+            if (refreshed.auth != null &&
+                refreshed.auth!.disabled != previousDisabled) {
+              _result = refreshed;
+            } else {
+              _actionsBlocked = true;
+            }
+          });
+        } on Object {
+          if (mounted) setState(() => _actionsBlocked = true);
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final result = _result;
     final profile = result.profile;
     final auth = result.auth;
     final textTheme = Theme.of(context).textTheme;
@@ -353,6 +556,8 @@ class _AdminUserDetailsContent extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          _buildSuspensionActions(context, auth),
         ] else if (profile == null &&
             !result.authUnavailable &&
             !result.profileUnavailable) ...<Widget>[
@@ -362,6 +567,152 @@ class _AdminUserDetailsContent extends StatelessWidget {
       ],
     );
   }
+
+  Widget _buildSuspensionActions(
+    BuildContext context,
+    AdminUserAuthDetails auth,
+  ) {
+    final action = auth.disabled
+        ? AdminUserSuspensionAction.reactivate
+        : AdminUserSuspensionAction.suspend;
+    final reason = normalizeAdminSuspensionReason(_reasonController.text);
+    final reasonError = !_showReasonError
+        ? null
+        : reason.length < 10 || reason.length > 500
+        ? 'Informe um motivo com 10 a 500 caracteres após normalização.'
+        : null;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Ações administrativas da conta',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Suspender impede novos logins e revoga refresh tokens. Um ID token já emitido pode continuar válido até expirar; isto não é um bloqueio instantâneo.',
+            ),
+            const SizedBox(height: 16),
+            Semantics(
+              label: 'Motivo obrigatório',
+              textField: true,
+              child: TextField(
+                controller: _reasonController,
+                enabled:
+                    !_submitting &&
+                    !_actionsBlocked &&
+                    _pendingOperationId == null,
+                minLines: 2,
+                maxLines: 4,
+                maxLength: 500,
+                textInputAction: TextInputAction.newline,
+                decoration: InputDecoration(
+                  labelText: 'Motivo obrigatório',
+                  hintText: 'Descreva o motivo da ação administrativa',
+                  errorText: reasonError,
+                ),
+                onChanged: (_) {
+                  if (_actionError != null || _showReasonError) {
+                    setState(() => _actionError = null);
+                  }
+                },
+              ),
+            ),
+            if (_actionError != null) ...<Widget>[
+              const SizedBox(height: 8),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  _actionError!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            ],
+            if (_actionsBlocked) ...<Widget>[
+              const SizedBox(height: 8),
+              const Text(
+                'A ação está indisponível para esta conta. Recarregue os detalhes antes de tentar novamente.',
+              ),
+            ],
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                FilledButton.icon(
+                  onPressed: _submitting || _actionsBlocked
+                      ? null
+                      : () => _requestAction(action),
+                  icon: _submitting
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          action == AdminUserSuspensionAction.suspend
+                              ? Icons.person_off_outlined
+                              : Icons.person_outline,
+                        ),
+                  label: Text(
+                    action == AdminUserSuspensionAction.suspend
+                        ? 'Suspender conta'
+                        : 'Reativar conta',
+                  ),
+                ),
+                if (_submitting)
+                  Semantics(
+                    label: 'Alteração da conta em andamento',
+                    liveRegion: true,
+                    child: const Text('Aguardando confirmação do servidor…'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _newUuidV4() {
+  final random = Random.secure();
+  final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  final hex = bytes
+      .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+      .join();
+  return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+      '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
+}
+
+bool _isTerminalFailure(Object error) {
+  if (error is! FirebaseFunctionsException) return false;
+  return const <String>{
+    'invalid-argument',
+    'not-found',
+    'permission-denied',
+    'failed-precondition',
+    'already-exists',
+  }.contains(error.code);
+}
+
+String _safeActionError(Object error) {
+  if (error is FirebaseFunctionsException) {
+    return switch (error.code) {
+      'not-found' => 'A conta Auth não foi encontrada.',
+      'permission-denied' => 'Esta conta não pode ser alterada pelo painel.',
+      'failed-precondition' => 'A ação não pode ser aplicada: a conta já está nesse estado ou é a sua própria conta administrativa.',
+      'invalid-argument' => 'Revise o motivo e tente novamente.',
+      'already-exists' => 'Houve um conflito na identificação da operação. Revise os dados e tente novamente.',
+      _ => 'Não foi possível confirmar a operação. Tentar novamente repetirá a mesma solicitação com segurança.',
+    };
+  }
+  return 'Não foi possível confirmar a operação. Seus dados foram preservados; tente novamente.';
 }
 
 class _AdminUserTile extends StatelessWidget {

@@ -222,7 +222,15 @@ test('falha após alterar Auth preserva pending para reconciliação segura', as
   const operations = new FakeOperationsGateway();
   const handler = createSetUserSuspensionHandler(auth, operations);
 
-  await assertHttpsError(handler(adminRequest(validInput())), 'internal');
+  await assert.rejects(
+    handler(adminRequest(validInput())),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpsError);
+      assert.equal(error.code, 'internal');
+      assert.deepEqual(error.details, { operationStatus: 'pending' });
+      return true;
+    },
+  );
   assert.equal(operations.finalOperations.get(operationId)?.status, 'pending');
 
   const result = await handler(adminRequest(validInput()));
@@ -240,4 +248,14 @@ test('conta ausente vira falha sanitizada e não vaza erro do Admin SDK', async 
 
   await assertHttpsError(handler(adminRequest(validInput())), 'not-found');
   assert.equal(operations.finalOperations.get(operationId)?.failureCode, 'not-found');
+  await assert.rejects(
+    handler(adminRequest(validInput())),
+    (error: unknown) => {
+      assert.ok(error instanceof HttpsError);
+      assert.equal(error.code, 'not-found');
+      assert.deepEqual(error.details, { operationStatus: 'failed' });
+      assert.equal(error.message.includes('private token'), false);
+      return true;
+    },
+  );
 });

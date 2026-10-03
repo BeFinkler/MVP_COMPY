@@ -310,6 +310,19 @@ class _FakeAdminUsersRepository implements AdminUsersRepository {
       );
 
   @override
+  Future<AdminUserSuspensionResult> setUserSuspension({
+    required String uid,
+    required AdminUserSuspensionAction action,
+    required String reason,
+    required String operationId,
+  }) async => AdminUserSuspensionResult(
+    uid: uid,
+    disabled: action == AdminUserSuspensionAction.suspend,
+    action: action,
+    completedAt: DateTime.utc(2026),
+  );
+
+  @override
   Future<AdminUsersPageSnapshot> searchProfiles(
     AdminUserSearchType type,
     String query, {

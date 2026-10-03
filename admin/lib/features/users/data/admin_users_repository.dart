@@ -7,6 +7,8 @@ enum AdminUserSearchType { name, handle, uid, email }
 
 enum AdminUserAuthState { active, suspended, notFound, unavailable }
 
+enum AdminUserSuspensionAction { suspend, reactivate }
+
 class AdminUserProfile {
   const AdminUserProfile({
     required this.uid,
@@ -94,6 +96,47 @@ class AdminUserAuthDetails {
   }
 }
 
+class AdminUserSuspensionResult {
+  const AdminUserSuspensionResult({
+    required this.uid,
+    required this.disabled,
+    required this.action,
+    required this.completedAt,
+  });
+
+  final String uid;
+  final bool disabled;
+  final AdminUserSuspensionAction action;
+  final DateTime completedAt;
+
+  factory AdminUserSuspensionResult.fromCallable(Object? value) {
+    if (value is! Map ||
+        value['uid'] is! String ||
+        (value['uid'] as String).isEmpty ||
+        value['disabled'] is! bool ||
+        (value['action'] != 'suspend' && value['action'] != 'reactivate') ||
+        value['completedAt'] is! String) {
+      throw const FormatException(
+        'Retorno da operação administrativa inválido.',
+      );
+    }
+    final completedAt = DateTime.tryParse(value['completedAt'] as String);
+    if (completedAt == null) {
+      throw const FormatException(
+        'Retorno da operação administrativa inválido.',
+      );
+    }
+    return AdminUserSuspensionResult(
+      uid: value['uid'] as String,
+      disabled: value['disabled'] as bool,
+      action: value['action'] == 'suspend'
+          ? AdminUserSuspensionAction.suspend
+          : AdminUserSuspensionAction.reactivate,
+      completedAt: completedAt.toUtc(),
+    );
+  }
+}
+
 DateTime? _parseDate(Object? value) =>
     value is String ? DateTime.tryParse(value) : null;
 
@@ -172,7 +215,7 @@ typedef AdminUsersCallableInvoker = Future<Object?> Function(
   Map<String, Object?> payload,
 );
 
-/// Narrow client boundary for the two read-only Auth Callables. The injectable
+/// Narrow client boundary for administrative Auth Callables. The injectable
 /// invoker lets tests verify exact function names and whitelisted payloads.
 class AdminUsersCallableClient {
   AdminUsersCallableClient({this.functions, this.invoker});
@@ -193,6 +236,23 @@ class AdminUsersCallableClient {
   Future<Object?> getAdminUsersAuthStatus(List<String> uids) =>
       _call('getAdminUsersAuthStatus', <String, Object?>{'uids': uids});
 
+  Future<AdminUserSuspensionResult> setUserSuspension({
+    required String uid,
+    required AdminUserSuspensionAction action,
+    required String reason,
+    required String operationId,
+  }) async {
+    final response = await _call('setUserSuspension', <String, Object?>{
+      'uid': uid,
+      'action': action == AdminUserSuspensionAction.suspend
+          ? 'suspend'
+          : 'reactivate',
+      'reason': normalizeAdminSuspensionReason(reason),
+      'operationId': operationId,
+    });
+    return AdminUserSuspensionResult.fromCallable(response);
+  }
+
   Future<Object?> _call(String name, Map<String, Object?> payload) async {
     final testInvoker = invoker;
     if (testInvoker != null) return testInvoker(name, payload);
@@ -203,6 +263,9 @@ class AdminUsersCallableClient {
     return result.data;
   }
 }
+
+String normalizeAdminSuspensionReason(String value) =>
+    value.trim().replaceAll(RegExp(r'\s+'), ' ');
 
 abstract interface class AdminUsersRepository {
   Future<AdminUsersPageSnapshot> searchProfiles(
@@ -217,6 +280,13 @@ abstract interface class AdminUsersRepository {
   );
 
   Future<AdminUserDetailsResult> loadDetails(String uid);
+
+  Future<AdminUserSuspensionResult> setUserSuspension({
+    required String uid,
+    required AdminUserSuspensionAction action,
+    required String reason,
+    required String operationId,
+  });
 }
 
 class FirebaseAdminUsersRepository implements AdminUsersRepository {
@@ -351,6 +421,19 @@ class FirebaseAdminUsersRepository implements AdminUsersRepository {
     ]);
     return _detailsResult(uid, reads[0] as _ProfileRead, reads[1] as _AuthRead);
   }
+
+  @override
+  Future<AdminUserSuspensionResult> setUserSuspension({
+    required String uid,
+    required AdminUserSuspensionAction action,
+    required String reason,
+    required String operationId,
+  }) => _callableClient.setUserSuspension(
+    uid: uid,
+    action: action,
+    reason: reason,
+    operationId: operationId,
+  );
 
   Future<_ProfileRead> _readProfile(String uid) async {
     final doc = await _firestore.collection('users').doc(uid).get();

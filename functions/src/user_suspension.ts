@@ -153,15 +153,16 @@ function toResult(operation: SuspensionOperation): UserSuspensionResult {
 
 function throwStoredFailure(operation: SuspensionOperation): never {
   const code = operation.failureCode ?? 'internal';
+  const details = { operationStatus: 'failed' };
   switch (code) {
     case 'not-found':
-      throw new HttpsError('not-found', 'A conta de usuário não foi encontrada.');
+      throw new HttpsError('not-found', 'A conta de usuário não foi encontrada.', details);
     case 'permission-denied':
-      throw new HttpsError('permission-denied', 'A conta alvo não pode ser alterada pelo painel.');
+      throw new HttpsError('permission-denied', 'A conta alvo não pode ser alterada pelo painel.', details);
     case 'failed-precondition':
-      throw new HttpsError('failed-precondition', 'A conta já está no estado solicitado.');
+      throw new HttpsError('failed-precondition', 'A conta já está no estado solicitado.', details);
     default:
-      throw new HttpsError('internal', 'Não foi possível concluir a operação administrativa.');
+      throw new HttpsError('internal', 'Não foi possível concluir a operação administrativa.', details);
   }
 }
 
@@ -184,7 +185,11 @@ async function failOperation(
     if (error instanceof HttpsError) throw error;
     // Se o Firestore falhar ao finalizar, manter pending é mais seguro do que
     // inventar um resultado. A repetição com o mesmo operationId reconcilia.
-    throw new HttpsError('internal', 'Não foi possível concluir a operação administrativa.');
+    throw new HttpsError(
+      'internal',
+      'Não foi possível concluir a operação administrativa.',
+      { operationStatus: 'pending' },
+    );
   }
 }
 
@@ -223,7 +228,11 @@ async function reconcilePendingOperation(
     if (error instanceof HttpsError) throw error;
     // Falha depois de tocar Auth (inclusive após disable) fica pending para a
     // próxima chamada reconciliar o estado real da conta com segurança.
-    throw new HttpsError('internal', 'Não foi possível concluir a operação administrativa.');
+    throw new HttpsError(
+      'internal',
+      'Não foi possível concluir a operação administrativa.',
+      { operationStatus: 'pending' },
+    );
   }
 }
 
@@ -241,7 +250,11 @@ export function createSetUserSuspensionHandler(
       if (error instanceof SuspensionOperationConflictError) {
         throw new HttpsError('already-exists', 'operationId já está associado a outra operação.');
       }
-      throw new HttpsError('internal', 'Não foi possível registrar a operação administrativa.');
+      throw new HttpsError(
+        'internal',
+        'Não foi possível registrar a operação administrativa.',
+        { operationStatus: 'pending' },
+      );
     }
 
     if (claimed.operation.status === 'succeeded') return toResult(claimed.operation);
