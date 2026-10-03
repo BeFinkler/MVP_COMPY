@@ -382,6 +382,9 @@ class _FakePlacesRepository implements AdminPlacesRepository {
     streams.add(stream);
     return stream.stream;
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _WatchCall {

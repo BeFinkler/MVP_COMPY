@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'admin_place_model.dart';
+
 enum AdminPlaceStatusFilter { all, active, inactive }
 
 class AdminPlacesFilters {
@@ -136,6 +138,46 @@ abstract interface class AdminPlacesRepository {
     AdminPlacesFilters filters, {
     AdminPlaceCursor? after,
   });
+
+  Stream<AdminPlaceRecord?> watchPlace(String id);
+
+  Future<AdminPlaceRecord?> getPlace(String id);
+
+  Future<String> createPlace(AdminPlaceDraft draft);
+
+  Future<void> updatePlace(
+    String id,
+    AdminPlaceDraft draft, {
+    required Timestamp expectedUpdatedAt,
+  });
+
+  Future<void> setPlaceStatus(
+    String id,
+    String status, {
+    required Timestamp expectedUpdatedAt,
+  });
+}
+
+enum AdminPlaceOperationErrorCode {
+  notFound,
+  conflict,
+  alreadyInState,
+  malformedDocument,
+}
+
+class AdminPlaceOperationError implements Exception {
+  const AdminPlaceOperationError(this.code);
+
+  final AdminPlaceOperationErrorCode code;
+
+  String get message => switch (code) {
+    AdminPlaceOperationErrorCode.notFound =>
+      'Este Local Esportivo não existe mais. Recarregue a página.',
+    AdminPlaceOperationErrorCode.conflict => 'Este local foi alterado por outra pessoa. Recarregue para revisar a versão atual.',
+    AdminPlaceOperationErrorCode.alreadyInState =>
+      'O local já está nesse estado. Recarregue os dados antes de continuar.',
+    AdminPlaceOperationErrorCode.malformedDocument => 'Os dados atuais do local estão inválidos e não podem ser alterados com segurança.',
+  };
 }
 
 class FirebaseAdminPlacesRepository implements AdminPlacesRepository {
@@ -199,7 +241,127 @@ class FirebaseAdminPlacesRepository implements AdminPlacesRepository {
           );
         });
   }
+
+  @override
+  Stream<AdminPlaceRecord?> watchPlace(String id) => _firestore
+      .collection('places')
+      .doc(id)
+      .snapshots(includeMetadataChanges: true)
+      .map(
+        (document) =>
+            document.exists ? AdminPlaceRecord.fromDocument(document) : null,
+      );
+
+  @override
+  Future<AdminPlaceRecord?> getPlace(String id) async {
+    final snapshot = await _firestore
+        .collection('places')
+        .doc(id)
+        .get(const GetOptions(source: Source.server));
+    return snapshot.exists ? AdminPlaceRecord.fromDocument(snapshot) : null;
+  }
+
+  @override
+  Future<String> createPlace(AdminPlaceDraft draft) async {
+    final fields = draft.toFirestoreFields();
+    final reference = _firestore.collection('places').doc();
+    await _firestore.runTransaction<void>((transaction) async {
+      final existing = await transaction.get(reference);
+      if (existing.exists) {
+        throw const AdminPlaceOperationError(
+          AdminPlaceOperationErrorCode.conflict,
+        );
+      }
+      transaction.set(reference, <String, Object?>{
+        ...fields,
+        'status': 'inactive',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+    return reference.id;
+  }
+
+  @override
+  Future<void> updatePlace(
+    String id,
+    AdminPlaceDraft draft, {
+    required Timestamp expectedUpdatedAt,
+  }) async {
+    final fields = draft.toFirestoreFields();
+    final reference = _firestore.collection('places').doc(id);
+    await _firestore.runTransaction<void>((transaction) async {
+      final snapshot = await transaction.get(reference);
+      if (!snapshot.exists) {
+        throw const AdminPlaceOperationError(
+          AdminPlaceOperationErrorCode.notFound,
+        );
+      }
+      final data = snapshot.data();
+      final currentUpdatedAt = data?['updatedAt'];
+      if (currentUpdatedAt is! Timestamp) {
+        throw const AdminPlaceOperationError(
+          AdminPlaceOperationErrorCode.malformedDocument,
+        );
+      }
+      if (!_sameTimestamp(currentUpdatedAt, expectedUpdatedAt)) {
+        throw const AdminPlaceOperationError(
+          AdminPlaceOperationErrorCode.conflict,
+        );
+      }
+      transaction.update(reference, <String, Object?>{
+        ...fields,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  @override
+  Future<void> setPlaceStatus(
+    String id,
+    String status, {
+    required Timestamp expectedUpdatedAt,
+  }) async {
+    if (status != 'active' && status != 'inactive') {
+      throw ArgumentError.value(status, 'status');
+    }
+    final reference = _firestore.collection('places').doc(id);
+    await _firestore.runTransaction<void>((transaction) async {
+      final snapshot = await transaction.get(reference);
+      if (!snapshot.exists) {
+        throw const AdminPlaceOperationError(
+          AdminPlaceOperationErrorCode.notFound,
+        );
+      }
+      final data = snapshot.data();
+      final currentUpdatedAt = data?['updatedAt'];
+      final currentStatus = data?['status'];
+      if (currentUpdatedAt is! Timestamp ||
+          (currentStatus != 'active' && currentStatus != 'inactive')) {
+        throw const AdminPlaceOperationError(
+          AdminPlaceOperationErrorCode.malformedDocument,
+        );
+      }
+      if (!_sameTimestamp(currentUpdatedAt, expectedUpdatedAt)) {
+        throw const AdminPlaceOperationError(
+          AdminPlaceOperationErrorCode.conflict,
+        );
+      }
+      if (currentStatus == status) {
+        throw const AdminPlaceOperationError(
+          AdminPlaceOperationErrorCode.alreadyInState,
+        );
+      }
+      transaction.update(reference, <String, Object?>{
+        'status': status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
 }
+
+bool _sameTimestamp(Timestamp left, Timestamp right) =>
+    left.seconds == right.seconds && left.nanoseconds == right.nanoseconds;
 
 class _FirestoreAdminPlaceCursor implements AdminPlaceCursor {
   const _FirestoreAdminPlaceCursor(this.document);

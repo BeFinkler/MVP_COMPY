@@ -284,6 +284,9 @@ class _FakeAdminPlacesRepository implements AdminPlacesRepository {
     filters.add(filter);
     return const Stream<AdminPlacesPageSnapshot>.empty();
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeAdminUsersRepository implements AdminUsersRepository {

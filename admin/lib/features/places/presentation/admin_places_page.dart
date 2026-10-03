@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../data/admin_places_repository.dart';
 import 'admin_places_controller.dart';
@@ -62,6 +63,15 @@ class _AdminPlacesPageState extends State<AdminPlacesPage> {
           'Locais Esportivos',
           style: Theme.of(context).textTheme.headlineMedium,
         ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: FilledButton.icon(
+            onPressed: () => context.go('/places/new'),
+            icon: const Icon(Icons.add_location_alt_outlined),
+            label: const Text('Cadastrar local'),
+          ),
+        ),
         const SizedBox(height: 16),
         _buildFilters(state.filters),
         if (state.isFromCache) ...<Widget>[
@@ -77,7 +87,13 @@ class _AdminPlacesPageState extends State<AdminPlacesPage> {
           _PlacesEmpty(filters: state.filters)
         else ...<Widget>[
           if (state.error != null) _InlineError(onRetry: _controller.retry),
-          ...state.places.map((place) => _PlaceTile(place: place)),
+          ...state.places.map(
+            (place) => _PlaceTile(
+              place: place,
+              onTap: () =>
+                  context.go('/places/${Uri.encodeComponent(place.id)}'),
+            ),
+          ),
           if (state.isLoadingMore)
             const Padding(
               padding: EdgeInsets.all(16),
@@ -229,9 +245,10 @@ class _AdminPlacesPageState extends State<AdminPlacesPage> {
 }
 
 class _PlaceTile extends StatelessWidget {
-  const _PlaceTile({required this.place});
+  const _PlaceTile({required this.place, required this.onTap});
 
   final AdminPlaceSummary place;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -239,6 +256,7 @@ class _PlaceTile extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        onTap: onTap,
         leading: Icon(
           active ? Icons.place_outlined : Icons.location_off_outlined,
         ),
@@ -312,6 +330,14 @@ class _PlacesEmpty extends StatelessWidget {
               ? 'Nenhum Local Esportivo cadastrado.'
               : 'Nenhum local corresponde aos filtros.',
         ),
+        if (filters == const AdminPlacesFilters()) ...<Widget>[
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: () => context.go('/places/new'),
+            icon: const Icon(Icons.add_location_alt_outlined),
+            label: const Text('Cadastrar primeiro local'),
+          ),
+        ],
       ],
     ),
   );

@@ -5,6 +5,7 @@ import '../../features/auth/presentation/admin_auth_screens.dart';
 import '../../features/dashboard/data/admin_dashboard_repository.dart';
 import '../../features/dashboard/presentation/admin_dashboard_page.dart';
 import '../../features/places/data/admin_places_repository.dart';
+import '../../features/places/presentation/admin_place_form_page.dart';
 import '../../features/places/presentation/admin_places_page.dart';
 import '../../features/users/data/admin_users_repository.dart';
 import '../../features/users/presentation/admin_users_pages.dart';
@@ -83,8 +84,8 @@ GoRouter createAdminRouter({
         builder: (context, state) => AdminShell(
           controller: authController,
           location: state.uri.path,
-          child: const AdminRoutePlaceholder(
-            title: 'Cadastrar Local Esportivo',
+          child: AdminPlaceFormPage(
+            repository: placesRepository ?? FirebaseAdminPlacesRepository(),
           ),
         ),
       ),
@@ -93,8 +94,9 @@ GoRouter createAdminRouter({
         builder: (context, state) => AdminShell(
           controller: authController,
           location: state.uri.path,
-          child: const AdminRoutePlaceholder(
-            title: 'Detalhes do Local Esportivo',
+          child: AdminPlaceFormPage(
+            placeId: state.pathParameters['id']!,
+            repository: placesRepository ?? FirebaseAdminPlacesRepository(),
           ),
         ),
       ),
