@@ -35,7 +35,7 @@ Spec: §§ 9, 13, 22–25, Testing Decisions / Scripts e implantação, e Furthe
 - Configuração: `firebase.json` e `firestore.indexes.json` são JSON válidos; o projeto local é `compy-tcc`, a codebase Functions é `administrative`/Node 20, a região é `southamerica-east1`, Hosting declara `admin` → `admin/build/web` com rewrite SPA, e há 13 índices compostos locais (7 para `places`).
 - Higiene: `git diff --check` passou; busca nos arquivos versionados não encontrou service account, chave privada, `.env` nem artefatos `node_modules`, builds ou logs.
 
-## Bloqueios externos
+## Bloqueios externos identificados em 2026-10-03 (histórico)
 
 - O Firebase CLI local v15.31.0 está autenticado e `projects:list` confirmou que `compy-tcc` é visível. Permissão de deploy não foi testada.
 - A listagem remota somente leitura encontrou apenas o site padrão `compy-tcc.web.app`; não existe mapeamento `hosting.admin` em `.firebaserc` nem site dedicado associado ao target. Nenhum site/target foi criado.
@@ -45,3 +45,21 @@ Spec: §§ 9, 13, 22–25, Testing Decisions / Scripts e implantação, e Furthe
 - Não foram executados deploy, migração/backfill, smoke tests hospedados ou período de observação; não há versões implantadas para registrar. Essas etapas requerem os pré-requisitos acima e confirmação antes de cada deploy remoto.
 
 O ticket permanece `blocked`; os critérios operacionais e smoke tests reais não foram satisfeitos. Não criar PR, não fazer merge e não publicar no repositório original até a conclusão e aprovação do gate.
+
+## Retomada e auditoria remota em 2026-10-05
+
+- Estado inicial preservado: branch `feat/admin-panel`, working tree limpo, HEAD local e `origin/feat/admin-panel` em `0969dd4d955d42a8e3a3b3773f6c5ffa07767bd8`. O fork continua como `origin`, e o original como `upstream`.
+- Blaze confirmado diretamente na Cloud Billing API: `billingEnabled: true` e conta de cobrança vinculada. Nenhuma associação de conta, cartão, plano ou billing foi alterada nesta execução.
+- CLI Firebase autenticada com acesso ao projeto `compy-tcc` / número `260166625635`. A consulta IAM confirmou permissões de criação/atualização de Functions, criação/atualização de Hosting, atualização de releases de Rules, criação de índices e habilitação de APIs. Deploy ainda não foi executado.
+- Firestore remoto: database `(default)`, `FIRESTORE_NATIVE`, região `southamerica-east1`. Os seis índices existentes de eventos/conversas estão `READY`; os sete índices locais de `places` ainda estão ausentes.
+- Rules remotas ainda diferem de `firestore.rules` final. A evidência final de 132/132 testes, exit code 0, continua válida; nenhuma Rule foi modificada nesta retomada.
+- Cloud Functions API ainda não estava habilitada na consulta inicial; portanto a listagem remota não confirma Functions publicadas. A publicação das três Callables continua pendente, com região `southamerica-east1`, gen2 e App Check obrigatório.
+- Site dedicado `compy-tcc-admin` criado pelo Firebase CLI e associado ao Web App existente `1:260166625635:web:c6f717d9c7d38c4f79cb56` (`mvp_compy (web)`). Target local `hosting.admin` associado a esse site em `.firebaserc`. Domínios reservados: `compy-tcc-admin.web.app` e `compy-tcc-admin.firebaseapp.com`. Ainda não há release do painel nesse site.
+- Authentication remoto permite e-mail/senha e autenticação anônima. Os dois domínios do novo site foram acrescentados a `authorizedDomains`, preservando `localhost` e os dois domínios do site padrão.
+- App Check do Web App: `recaptchaV3Config.siteSecretSet == false`; nenhum token debug registrado. Falta registrar reCAPTCHA v3 para os domínios reais do painel e fornecer a site key pública ao build. A chave secreta deve ser inserida somente no Console. O enforcement global do Firestore permanece `UNENFORCED`.
+- A Cloud Billing Budget API foi habilitada no projeto somente para permitir a consulta. Com o projeto de quota correto, a API retornou `403 PERMISSION_DENIED`: a conta atual não pode listar orçamentos da conta de cobrança. O responsável pela cobrança precisa confirmar/criar orçamento e alertas; nenhum valor financeiro foi escolhido e nenhum orçamento foi criado automaticamente.
+- `places/parque_do_trabalhador` não existe no Firestore remoto. O endereço e as coordenadas fornecidos pelo responsável coincidem com o seed. A imagem do seed é uma URL Unsplash genérica; antes da migração, ainda é necessária uma imageUrl HTTPS real aprovada para o Parque. Não foi executada migração/backfill.
+- Validações locais repetidas nesta retomada: Admin `flutter analyze --no-pub` sem issues, exit code 0; `flutter test --no-pub --reporter expanded` com 50 testes aprovados, exit code 0; `flutter build web --no-pub` exit code 0. O build é somente evidência de compilação: não possui a site key externa obrigatória, portanto não deve ser publicado. Functions: typecheck, lint e testes 19/19, todos com exit code 0.
+- Os deploys permanecem pendentes até confirmação de orçamento/alertas e registro App Check. Publicar Rules finais também depende da sequência expand–contract e dos smoke tests reais definidos na spec; não é seguro substituir antecipadamente as Rules antigas somente porque os testes locais passaram.
+
+O bloqueio de Spark foi superado. O ticket permanece `blocked` pelo gate de produção: orçamento/alertas não confirmados, reCAPTCHA/App Check sem registro, imagem real e conta administrativa ainda não confirmadas, deploys e smoke tests pendentes. As autorizações de deploy e finalização Git fornecidas pelo responsável serão usadas quando esses pré-requisitos estiverem satisfeitos; não é necessário solicitar novamente autorização genérica para essas operações.

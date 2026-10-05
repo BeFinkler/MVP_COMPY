@@ -4,6 +4,33 @@ Este runbook cobre a configuração local e os passos manuais para Firebase App
 Check, Hosting e Cloud Functions. Os comandos de deploy abaixo são operações
 remotas e não foram executados durante a implementação deste ticket.
 
+## Auditoria de produção em 2026-10-05
+
+Blaze e billing vinculado foram confirmados pela API. O site dedicado
+`compy-tcc-admin` já existe, está associado ao Web App
+`1:260166625635:web:c6f717d9c7d38c4f79cb56` e está mapeado para o target
+`admin` em `.firebaserc`. Seu endereço será
+`https://compy-tcc-admin.web.app`; ainda não houve deploy do painel.
+Os domínios `compy-tcc-admin.web.app` e `compy-tcc-admin.firebaseapp.com`
+já estão autorizados no Firebase Authentication.
+
+O registro App Check reCAPTCHA v3 ainda não tem secret configurada e não há
+token debug autorizado. Registre a chave para esses dois domínios, coloque
+somente a secret key no Console e forneça a site key pública externamente
+ao build. Não adicione localhost aos domínios de produção.
+
+A conta autenticada não possui permissão para consultar os orçamentos da
+conta de cobrança. O responsável por billing deve confirmar/criar orçamento
+e alertas antes dos deploys. A API de consulta de orçamentos foi habilitada,
+mas nenhum orçamento ou configuração de cobrança foi alterado.
+
+Os seis índices existentes estão `READY`; os sete índices de `places` ainda
+precisam ser publicados. As Rules remotas ainda são anteriores ao contract
+final, e o documento `places/parque_do_trabalhador` ainda não existe. Antes
+da migração, obtenha a URL HTTPS de uma imagem real aprovada do Parque;
+a imagem Unsplash do seed não comprova esse dado. As evidências e pendências
+completas estão no ticket 18.
+
 ## Estado e limites
 
 - O projeto é `compy-tcc`; o Hosting usa um target dedicado `admin` e publica
