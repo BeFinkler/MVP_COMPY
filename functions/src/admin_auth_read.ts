@@ -1,6 +1,8 @@
 import { getAuth, type UserRecord } from 'firebase-admin/auth';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 
+import { administrativeFunctionsRegion } from './config.js';
+
 /**
  * Narrow representation of an Auth account used by the read-only administrative
  * Callables. Keeping this boundary small prevents accidental exposure of Auth
@@ -52,6 +54,7 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
 
 /** The production deployment must reject invalid App Check attestations. */
 export const administrativeCallableOptions = {
+  region: administrativeFunctionsRegion,
   enforceAppCheck: true,
 } as const;
 
