@@ -14,10 +14,14 @@ Blaze e billing vinculado foram confirmados pela API. O site dedicado
 Os domínios `compy-tcc-admin.web.app` e `compy-tcc-admin.firebaseapp.com`
 já estão autorizados no Firebase Authentication.
 
-O registro App Check reCAPTCHA v3 ainda não tem secret configurada e não há
-token debug autorizado. Registre a chave para esses dois domínios, coloque
-somente a secret key no Console e forneça a site key pública externamente
-ao build. Não adicione localhost aos domínios de produção.
+O registro App Check reCAPTCHA v3 foi concluído pelas APIs oficiais após a
+criação da chave `COMPY Admin`, restrita aos dois domínios acima. O GET de
+verificação confirmou `siteSecretSet: true`, TTL de 1 dia e score mínimo 0,5.
+A secret de compatibilidade foi transferida diretamente da API reCAPTCHA
+para a API App Check, sem ser exibida ou gravada em arquivo. A site key pública
+deve continuar sendo fornecida externamente ao build. Ainda não há token debug
+autorizado nem smoke test de attestation no site hospedado. Não adicione
+localhost aos domínios de produção.
 
 A conta autenticada não possui permissão para consultar os orçamentos da
 conta de cobrança. O responsável por billing deve confirmar/criar orçamento

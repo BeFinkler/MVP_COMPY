@@ -63,3 +63,12 @@ O ticket permanece `blocked`; os critérios operacionais e smoke tests reais nã
 - Os deploys permanecem pendentes até confirmação de orçamento/alertas e registro App Check. Publicar Rules finais também depende da sequência expand–contract e dos smoke tests reais definidos na spec; não é seguro substituir antecipadamente as Rules antigas somente porque os testes locais passaram.
 
 O bloqueio de Spark foi superado. O ticket permanece `blocked` pelo gate de produção: orçamento/alertas não confirmados, reCAPTCHA/App Check sem registro, imagem real e conta administrativa ainda não confirmadas, deploys e smoke tests pendentes. As autorizações de deploy e finalização Git fornecidas pelo responsável serão usadas quando esses pré-requisitos estiverem satisfeitos; não é necessário solicitar novamente autorização genérica para essas operações.
+
+## Registro App Check concluído em 2026-10-05
+
+- O responsável criou a chave reCAPTCHA `COMPY Admin` no projeto `compy-tcc`: Web `SCORE`, restrita a `compy-tcc-admin.web.app` e `compy-tcc-admin.firebaseapp.com`, sem modo de teste e sem permitir todos os domínios.
+- A interface Firebase apresentou o aviso de descontinuação do reCAPTCHA Classic e não permitiu ao responsável preencher o registro. A configuração foi concluída pelas APIs oficiais: recuperação da legacy secret key da chave existente e PATCH somente de `siteSecret` em `recaptchaV3Config` do Web App `1:260166625635:web:c6f717d9c7d38c4f79cb56`.
+- GET de verificação confirmou `siteSecretSet: true`, `tokenTtl: 86400s` e `minValidScore: 0.5`. O provider do painel permanece reCAPTCHA v3, conforme a spec. A secret foi transferida somente em memória entre as APIs autenticadas; não foi exibida, gravada em arquivo ou versionada.
+- Esse registro confirma a configuração do provider, não a emissão de token válido pelo painel hospedado. Smoke test de produção e observação das métricas continuam pendentes. O enforcement global do Firestore não foi alterado.
+- Build Web de release gerado com a site key pública real fornecida por `--dart-define=COMPY_RECAPTCHA_V3_SITE_KEY`, sem token debug: `flutter build web --no-pub`, exit code 0. O artefato ignorado pelo Git fica em `admin/build/web`; ainda não foi publicado no Hosting.
+- O próximo bloqueio operacional é confirmação de orçamento/alertas pelo responsável por billing. Imagem real do Parque, bootstrap administrativo, token debug local e demais critérios de implantação continuam pendentes. Ticket 18 permanece `blocked`.
