@@ -2,15 +2,17 @@
 
 Este runbook cobre a configuração local e os passos manuais para Firebase App
 Check, Hosting e Cloud Functions. Os comandos de deploy abaixo são operações
-remotas e não foram executados durante a implementação deste ticket.
+remotas. O estado efetivamente implantado está registrado nesta auditoria e no
+ticket 18; configuração local não comprova implantação remota.
 
 ## Auditoria de produção em 2026-10-05
 
 Blaze e billing vinculado foram confirmados pela API. O site dedicado
 `compy-tcc-admin` já existe, está associado ao Web App
 `1:260166625635:web:c6f717d9c7d38c4f79cb56` e está mapeado para o target
-`admin` em `.firebaserc`. Seu endereço será
-`https://compy-tcc-admin.web.app`; ainda não houve deploy do painel.
+`admin` em `.firebaserc`. O painel já foi publicado em
+`https://compy-tcc-admin.web.app`, release
+`sites/compy-tcc-admin/releases/1791200318956000` (deploy exit code 0).
 Os domínios `compy-tcc-admin.web.app` e `compy-tcc-admin.firebaseapp.com`
 já estão autorizados no Firebase Authentication.
 
@@ -24,16 +26,44 @@ autorizado nem smoke test de attestation no site hospedado. Não adicione
 localhost aos domínios de produção.
 
 A conta autenticada não possui permissão para consultar os orçamentos da
-conta de cobrança. O responsável por billing deve confirmar/criar orçamento
-e alertas antes dos deploys. A API de consulta de orçamentos foi habilitada,
-mas nenhum orçamento ou configuração de cobrança foi alterado.
+conta de cobrança. O responsável confirmou que Gabriel concluiu orçamento,
+limites e alertas corretamente. Nenhum orçamento ou configuração de cobrança
+foi alterado pelo agente.
 
-Os seis índices existentes estão `READY`; os sete índices de `places` ainda
-precisam ser publicados. As Rules remotas ainda são anteriores ao contract
-final, e o documento `places/parque_do_trabalhador` ainda não existe. Antes
+Os 13 índices compostos estão publicados e `READY`. Foram publicadas Rules
+transitórias do snapshot `f5e5587ddf925310ea2067fbdd814eb7ecc466f2`, com deploy
+exit code 0, para expand–contract; as Rules finais locais não foram modificadas
+nem publicadas antecipadamente. O backfill `nameLower` atualizou nove perfis
+e a verificação idempotente não encontrou novas alterações. O documento
+`places/parque_do_trabalhador` ainda não existe. Antes
 da migração, obtenha a URL HTTPS de uma imagem real aprovada do Parque;
 a imagem Unsplash do seed não comprova esse dado. As evidências e pendências
 completas estão no ticket 18.
+
+As três Callables estão `ACTIVE`, gen2, em `southamerica-east1`, com
+`enforceAppCheck: true`. Uma correção nas opções de `onCall` fixa a região
+explicitamente, evitando a ordem de inicialização dos reexports ESM; o teste
+de regressão verifica o metadata de deploy. Instâncias criadas por engano
+nesta execução em `us-central1` foram removidas. Typecheck/lint exit code 0;
+20 testes aprovados. Todas rejeitam chamadas sem credenciais (HTTP 401).
+Isso não substitui smoke tests com Auth, custom claim e App Check válidos.
+
+O deploy das Functions terminou com exit code 1 **somente após** a criação,
+por falta de política de limpeza de imagens de build. Nenhuma política foi
+aplicada: retenção de um dia foi recusada pela revisão automática por risco
+de exclusão irreversível sem prazo autorizado. Defina explicitamente uma
+retenção adequada ao rollback ou decida manter os artefatos, considerando
+custo de armazenamento. Não escolher prazo financeiro/destrutivo silenciosamente.
+
+Node 20 é o runtime atual; sua desativação está prevista para 2026-10-30 na
+[tabela oficial de runtimes](https://docs.cloud.google.com/run/docs/runtimes/function-runtimes).
+Planejar migração validada para runtime suportado antes de concluir o gate.
+
+O login hospedado renderiza e o guard redireciona `/dashboard` sem sessão para
+`/login`. Não há administrador com claim registrado na consulta atual; antes
+do bootstrap, o responsável deve escolher uma conta existente qualificada.
+O gate permanece bloqueado pela imagem do Parque, bootstrap, debug local,
+attestation e smoke tests reais, validação do mobile, contract final e observação.
 
 ## Estado e limites
 

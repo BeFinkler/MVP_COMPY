@@ -10,11 +10,11 @@ Spec: §§ 9, 13, 22–25, Testing Decisions / Scripts e implantação, e Furthe
 
 ## Acceptance criteria
 
-- [ ] Plano Blaze, orçamento e alertas estão confirmados pelo responsável.
+- [x] Plano Blaze, orçamento e alertas estão confirmados pelo responsável.
 - [ ] Site/target Hosting, domínio padrão, domínio autorizado do App Check, chave reCAPTCHA e token debug de desenvolvimento foram configurados externamente sem serem versionados.
-- [ ] CLI autenticada e permissões de deploy foram confirmadas pelo responsável.
+- [x] CLI autenticada e permissões de deploy foram confirmadas pelo responsável.
 - [ ] Endereço e imagem de `parque_do_trabalhador` foram confirmados antes da execução do script remoto.
-- [ ] Índices estão `READY` antes de publicar escritores dependentes.
+- [x] Índices estão `READY` antes de publicar escritores dependentes.
 - [ ] A sequência de deploy segue Rules transitórias, migração/backfill, mobile novo, validação, Hosting/Functions com App Check e Rules finais.
 - [ ] Smoke tests reais cobrem login administrativo, deep link, Dashboard, locais, busca, conta sem perfil, perfil sem conta, suspensão, reativação e comportamento de token já emitido.
 - [ ] Erros, custos, App Check e Functions são observados no período inicial; enforcement global do Firestore não é ativado neste ticket.
@@ -72,3 +72,18 @@ O bloqueio de Spark foi superado. O ticket permanece `blocked` pelo gate de prod
 - Esse registro confirma a configuração do provider, não a emissão de token válido pelo painel hospedado. Smoke test de produção e observação das métricas continuam pendentes. O enforcement global do Firestore não foi alterado.
 - Build Web de release gerado com a site key pública real fornecida por `--dart-define=COMPY_RECAPTCHA_V3_SITE_KEY`, sem token debug: `flutter build web --no-pub`, exit code 0. O artefato ignorado pelo Git fica em `admin/build/web`; ainda não foi publicado no Hosting.
 - O próximo bloqueio operacional é confirmação de orçamento/alertas pelo responsável por billing. Imagem real do Parque, bootstrap administrativo, token debug local e demais critérios de implantação continuam pendentes. Ticket 18 permanece `blocked`.
+
+## Implantação parcial e checkpoint em 2026-10-05
+
+- O responsável confirmou que Gabriel concluiu orçamento, limites e alertas corretamente. Essa confirmação humana é a evidência operacional; a conta CLI continua sem permissão para listar budgets. Nenhum valor financeiro ou configuração de cobrança foi alterado pelo agente.
+- Deploy dos índices terminou com exit code 0. Consulta posterior confirmou os 13 índices compostos em `READY`, incluindo os sete de `places`; nenhum índice existente foi removido.
+- Hosting `admin` publicado com build de release e site key pública real, sem debug token. Deploy exit code 0; release `sites/compy-tcc-admin/releases/1791200318956000`, versão `sites/compy-tcc-admin/versions/ce9e2163d1169f56`, em `2026-10-05T11:38:38.956Z`. URL: `https://compy-tcc-admin.web.app`.
+- HTTP 200 nas rotas `/`, `/login`, `/dashboard`, `/places` e `/users` confirma o rewrite SPA, não acesso administrativo. No navegador, login renderizou sem erros/warnings e o deep link `/dashboard` sem sessão redirecionou para `/login`, sem shell administrativo. Login autorizado, dados e attestation App Check ainda não foram validados ponta a ponta.
+- Para respeitar expand–contract, foram publicadas Rules **transitórias**, recuperadas do snapshot Git `f5e5587ddf925310ea2067fbdd814eb7ecc466f2`, anterior ao endurecimento do ticket 17. Compilação/deploy exit code 0; ruleset remoto `projects/compy-tcc/rulesets/71deeb21-acce-4a9f-ab0b-2df6189d640a` verificado contra esse snapshot. O arquivo local final `firestore.rules` não foi alterado. A evidência manual 132/132 continua sendo a validação das Rules **finais locais**, ainda não publicadas. Arquivos temporários do deploy foram removidos.
+- Backfill `nameLower` executado pelo gateway testado com credenciais externas mantidas em memória: dry-run 9 atualizações/0 inválidos; aplicação 9 atualizações; verificação idempotente 0 atualizações/9 inalterados/0 inválidos, exit code 0. Tooling Admin SDK: typecheck/lint exit code 0, 34/34 testes, exit code 0.
+- Detectado defeito real na região: reexports ESM instanciavam `onCall` antes de `setGlobalOptions` em `index.ts`, deixando o metadata de deploy na região padrão. Corrigido com `region: administrativeFunctionsRegion` nas opções compartilhadas das três Callables, mantendo `enforceAppCheck: true`; teste de regressão verifica `__endpoint.region` de cada export. Typecheck/lint exit code 0; Functions 20/20 testes, exit code 0.
+- O primeiro deploy criou as três novas Functions em `us-central1`; somente essas instâncias criadas nesta execução foram removidas. Deploy corrigido criou `getAdminUserAuthDetails`, `getAdminUsersAuthStatus` e `setUserSuspension` em `southamerica-east1`, `GEN_2`, runtime `nodejs20`. Consulta posterior confirmou todas `ACTIVE`, sem Functions restantes em `us-central1`. Cada endpoint rejeitou POST sem credenciais com HTTP 401 / `UNAUTHENTICATED`.
+- O CLI de Functions terminou com exit code **1**, apesar da criação bem-sucedida, por ausência de política de limpeza de Artifact Registry. Não registrar esse deploy como exit code 0. Consulta confirmou `cleanupPolicies: {}` nas duas regiões. A revisão automática recusou a tentativa de retenção de um dia por risco de exclusão irreversível sem prazo autorizado; nenhuma política foi aplicada. Escolha de retenção ou manutenção dos artefatos depende de decisão explícita do responsável.
+- O runtime Node 20 foi mantido conforme configuração existente, mas a CLI e a [tabela oficial de runtimes](https://docs.cloud.google.com/run/docs/runtimes/function-runtimes) alertam para desativação em 2026-10-30. Antes de tratar a produção como concluída/durável, migrar e validar uma versão suportada, sem mudar região ou contrato das Callables.
+- `places/parque_do_trabalhador` continua ausente: falta URL HTTPS de imagem real aprovada. Não foi criada migração com a imagem genérica do seed. Consulta curada de Auth encontrou 16 contas e nenhuma claim `admin: true`; o responsável precisa escolher UID/e-mail da conta administrativa existente. O bootstrap verificará provedor password, e-mail verificado e conta habilitada, sem alterar senha ou verificação automaticamente.
+- Permanecem pendentes: imagem e migração do Parque, escolha/bootstrap de admin, token debug local, validação de App Check real, smoke tests autorizados incluindo suspensão/reativação, validação do novo mobile em produção, publicação das Rules finais após essa validação e observação inicial. Ticket 18 permanece `blocked`. Não houve push ao original, PR, merge ou troca de remotes.
