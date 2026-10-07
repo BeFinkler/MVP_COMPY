@@ -65,6 +65,33 @@ do bootstrap, o responsável deve escolher uma conta existente qualificada.
 O gate permanece bloqueado pela imagem do Parque, bootstrap, debug local,
 attestation e smoke tests reais, validação do mobile, contract final e observação.
 
+## Reauditoria remota em 2026-10-07
+
+- Billing API confirmou Blaze e conta vinculada. O responsável confirmou que
+  orçamento, limites e alertas foram concluídos; a conta CLI não tem acesso à
+  listagem de budgets.
+- Os 13 índices do Firestore estão `READY`. A release ativa das Rules é o
+  conjunto transitório `71deeb21-acce-4a9f-ab0b-2df6189d640a`; Rules finais
+  locais aguardam validação dos escritores de produção antes do contract.
+- App Check mantém reCAPTCHA v3 configurado (`siteSecretSet: true`, TTL 1 dia,
+  score mínimo 0,5), mas não há tokens de debug registrados. Enforcement
+  global Firestore permanece `UNENFORCED`.
+- O Web App está associado ao site Admin. Auth confirmou e-mail/senha e os dois
+  domínios do Hosting autorizados. Os GETs das cinco rotas SPA e dos dois
+  principais arquivos JavaScript retornaram HTTP 200.
+- As três Functions gen2 estão ativas em `southamerica-east1`; chamada sem
+  autenticação retornou 401 em cada endpoint. O CLI reportou exit code 1 após
+  criar as funções pela ausência de política de limpeza de artefatos. Nenhuma
+  política foi configurada; o prazo de retenção ainda requer decisão.
+- Auth contém 16 contas, nenhuma com claim admin e nenhuma elegível hoje ao
+  bootstrap (provedor password, e-mail verificado, conta habilitada). Escolha
+  ou prepare uma conta apropriada antes de atribuir a claim.
+- O documento `places/parque_do_trabalhador` não existe; aguarda-se a imagem
+  HTTPS real aprovada. Não rode a migração com a imagem genérica do seed.
+- A automação visual do navegador não conseguiu identificar a URL da janela e
+  foi interrompida. Assim, os GETs não são evidência de Firebase inicializado,
+  token App Check válido ou fluxo autenticado. Esses testes continuam pendentes.
+
 ## Estado e limites
 
 - O projeto é `compy-tcc`; o Hosting usa um target dedicado `admin` e publica
