@@ -48,6 +48,13 @@ test('migração cria e verifica exatamente o ID legado aprovado', async () => {
   assert.deepEqual(gateway.verifications, [{ id: parqueDoTrabalhadorId, place: parqueDoTrabalhadorSeed }]);
 });
 
+test('seed usa a imagem real publicada no Hosting do Admin', () => {
+  assert.equal(
+    parqueDoTrabalhadorSeed.imageUrl,
+    'https://compy-tcc-admin.web.app/places/parque_do_trabalhador.jpg',
+  );
+});
+
 test('documento equivalente é no-op e ainda é verificado', async () => {
   const gateway = fakeGateway({
     ...parqueDoTrabalhadorSeed,

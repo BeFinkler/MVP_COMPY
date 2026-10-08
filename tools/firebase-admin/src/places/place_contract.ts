@@ -173,6 +173,6 @@ export const parqueDoTrabalhadorSeed: PlaceSeed = {
     latitude: -29.656276729317323,
     longitude: -50.787726691670045,
   },
-  imageUrl: 'https://images.unsplash.com/photo-1551958219-acbc608c6377?w=600',
+  imageUrl: 'https://compy-tcc-admin.web.app/places/parque_do_trabalhador.jpg',
   status: 'active',
 };

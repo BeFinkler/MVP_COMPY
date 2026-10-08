@@ -92,6 +92,69 @@ attestation e smoke tests reais, validação do mobile, contract final e observa
   foi interrompida. Assim, os GETs não são evidência de Firebase inicializado,
   token App Check válido ou fluxo autenticado. Esses testes continuam pendentes.
 
+## Reauditoria e retomada em 2026-10-08
+
+Este registro substitui apenas os estados divergentes acima; não altera a
+sequência expand–contract nem os critérios do ticket 18.
+
+- Billing API confirmou Blaze (`billingEnabled: true`) e conta vinculada. O
+  responsável confirmou que orçamento, limites e alertas estão configurados.
+  A conta Firebase CLI não tem permissão para consultar budgets; nenhuma
+  configuração financeira foi alterada.
+- A configuração App Check reCAPTCHA v3 do Web App Admin permanece ativa
+  (`siteSecretSet: true`, TTL 86400s, score mínimo 0.5). Os domínios padrão do
+  Hosting Admin estão autorizados. Um token debug de localhost foi registrado
+  pela API oficial e usado somente em memória/processo para desenvolvimento;
+  seu valor não foi exibido nem salvo no repositório. Enforcement global de
+  Firestore continua `UNENFORCED`.
+- O arquivo real fornecido pelo responsável foi copiado para
+  `admin/web/places/parque_do_trabalhador.jpg` (SHA-256 idêntico ao original,
+  47.854 bytes). O asset está publicado em
+  `https://compy-tcc-admin.web.app/places/parque_do_trabalhador.jpg` (HTTP 200).
+  O seed do tooling Admin SDK usa essa URL HTTPS.
+- A migração de `places/parque_do_trabalhador` foi executada com precondição
+  `exists:false` via Firestore REST oficial autenticada pelo Firebase CLI,
+  pois o ambiente não tinha Application Default Credentials para o script
+  Admin SDK. Transformações de timestamp do servidor foram usadas. A leitura
+  subsequente confirmou ID legado, status `active`, campos aprovados, imagem,
+  GeoPoint, sete modalidades e timestamps. O script/Admin SDK foi validado
+  separadamente; nenhum segredo foi criado ou salvo.
+- Admin Web revalidado: analyze exit code 0; 50 testes exit code 0; build web
+  release com site key pública exit code 0. Deploy seletivo do target `admin`
+  exit code 0, release `1791474942013000`, versão `d425f97f183bf0e9`. Rotas
+  `/`, `/login` e `/dashboard` respondem HTTP 200; sem sessão, o guard leva à
+  tela de login. A imagem responde HTTP 200. Isso não equivale a login admin
+  nem a um smoke test autenticado.
+- Tooling Admin SDK: typecheck/lint exit code 0, 35/35 testes exit code 0.
+  A política do Artifact Registry agora está configurada e confirmada como
+  `firebase-functions-cleanup`, ação `DELETE`, somente artefatos com idade
+  superior a `2592000s` (30 dias).
+- As três Functions permanecem ativas em gen2, `southamerica-east1`, runtime
+  `nodejs20`; não houve alteração de código nem redeploy nesta retomada.
+  Chamadas sem Auth haviam retornado 401/`UNAUTHENTICATED`. Planejar atualização
+  do runtime antes de 2026-10-30.
+- Os 13 índices seguem `READY`. As Rules remotas permanecem no ruleset
+  transitório `71deeb21-acce-4a9f-ab0b-2df6189d640a`; as Rules finais locais
+  continuam validadas por 132/132 testes, exit code 0, mas não foram
+  publicadas porque o writer mobile novo ainda não foi validado contra
+  produção. Essa ordem evita bloquear clientes antigos.
+- Auth: auditoria agregada encontrou 16 contas, nenhuma claim admin e nenhuma
+  conta elegível ao bootstrap (habilitada, e-mail verificado e provider
+  `password`). A conta indicada anteriormente está verificada, mas só tem
+  provider `google.com`; o bootstrap seguro recusou promovê-la. Nenhuma senha,
+  provider, e-mail ou claim foi alterado. Não escolher outra conta sem
+  indicação explícita.
+- O servidor local de desenvolvimento foi iniciado em
+  `http://127.0.0.1:53421`; a tela `/login` carregou e o SDK emitiu o sinal de
+  debug token. O processo fica sujeito à sessão atual do computador. O canal
+  Flutter WebSocket de depuração apresentou erro na automação; não há evidência
+  de chamada autenticada bem-sucedida ao Firestore ou às Callables.
+- Próximos gates antes de Rules finais e PR/merge: preparar conta admin
+  elegível e concluir bootstrap confiável; publicar/validar o app mobile novo
+  em produção; fazer login real e smoke tests autorizados (Dashboard, Places,
+  Users, Callables e suspensão/reativação); observar App Check/Functions. Não
+  houve publicação no repositório oficial, PR ou merge.
+
 ## Estado e limites
 
 - O projeto é `compy-tcc`; o Hosting usa um target dedicado `admin` e publica
