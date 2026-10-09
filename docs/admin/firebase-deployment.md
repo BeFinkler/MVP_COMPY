@@ -373,3 +373,23 @@ expand–contract da spec.
   como descartável, mas ainda não sofreu mutação. A sessão administrativa não
   está disponível à automação e o teste de suspensão/reativação continua
   pendente de confirmação explícita no momento da ação.
+
+## Retomada autenticada e correção das Callables em 2026-10-09
+
+- Na sessão hospedada autenticada, Dashboard, lista de usuários, busca por
+  prefixo de `handle` e detalhe do perfil funcionaram. Inicialmente, o estado
+  Auth aparecia indisponível. Cloud Logging confirmou App Check e Auth válidos,
+  seguidos por HTTP 500 nas duas Callables de leitura.
+- A causa foi a ausência de `initializeApp()` no entrypoint das Functions; a
+  reprodução local retornou `app/no-app`. O entrypoint agora inicializa o Admin
+  SDK e um teste de configuração protege essa inicialização. Typecheck, lint e
+  testes: exit code 0; 21/21 testes.
+- O codebase `administrative` foi implantado seletivamente em
+  `compy-tcc` (Firebase CLI exit code 0). As três Callables existentes foram
+  atualizadas em gen2, região `southamerica-east1`, runtime `nodejs20`; nenhum
+  Hosting, Rules ou índice foi alterado nesse deploy.
+- Após reload, o painel exibiu estados Auth ativos e os detalhes mínimos da
+  conta descartável `@usuario12` (habilitada, provider `password`, e-mail não
+  verificado). UID e e-mail foram omitidos. A conta permanece ativa; a
+  suspensão/reativação continua pendente de confirmação no momento de cada
+  mutação e deve ser executada pelo fluxo do próprio painel.
