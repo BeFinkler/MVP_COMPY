@@ -164,3 +164,45 @@ O bloqueio de Spark foi superado. O ticket permanece `blocked` pelo gate de prod
 - Após reload, a lista autenticada exibiu estados ativos e o detalhe do perfil de teste retornou os dados administrativos mínimos; a conta alvo aparece habilitada (`disabled: false`), com provider `password` e e-mail não verificado. Identificadores e e-mail foram omitidos deste registro.
 - A conta de teste continua ativa. A suspensão ainda exige confirmação imediatamente antes da mutação; após comprovar a suspensão, a reativação também será confirmada imediatamente antes. Nenhuma alteração de estado foi feita nesta retomada.
 - Permanecem pendentes a mutação de suspensão/reativação e seus resultados observados, os casos Auth sem perfil/Perfil sem Auth, deep link autenticado e observação inicial suficiente de erros, App Check, Functions e custos. O ticket continua `blocked`; não criar PR nem fazer merge antes de fechar esses critérios.
+
+## Smoke tests autenticados adicionais em 2026-10-09
+
+- Na sessão autenticada hospedada, o Dashboard carregou suas contagens; a busca
+  por prefixo de handle encontrou `@usuario12`, e o detalhe carregou os dados
+  administrativos mínimos e o estado Auth. A navegação para o detalhe ocorreu
+  pelo painel. Depois de recarregar a rota, o painel exibiu login, sem conteúdo
+  administrativo. Isso confirma o redirecionamento seguro sem sessão, mas não
+  comprova preservação da sessão após refresh nem deep link autenticado após
+  refresh.
+- Com autorização explícita do responsável e confirmação no momento das ações,
+  a conta descartável `@usuario12` foi suspensa e reativada pelo painel. As duas
+  operações terminaram com sucesso; o estado final observado é `Ativa`. O
+  motivo obrigatório foi informado. Nenhuma senha, perfil ou dado pessoal foi
+  alterado. Não foi feita outra mutação de conta.
+- Uma consulta somente leitura pelo Admin SDK confirmou, por flags agregadas,
+  que a conta administrativa designada está habilitada, verificada, usa o
+  provider `password`, possui `admin: true` e não possui `users/{uid}`. Isso
+  oferece uma conta Auth sem perfil existente para o smoke test de UI, mas a
+  tela correspondente ainda não foi validada.
+- Após o deploy corretivo das Functions (`2026-10-09T14:09:13Z`–`14:09:16Z`),
+  consulta agregada do Cloud Logging desde `14:09:17Z`, no momento da consulta,
+  encontrou zero erros `cloud_run_revision`; os 11 registros de
+  verificação de Callable encontrados reportaram `auth: VALID` e `app: VALID`
+  nas três Functions administrativas. A janela é uma observação inicial curta,
+  não uma observação sustentada de custos.
+- O responsável já confirmou que Places/Users funcionam na produção e que o
+  mobile atualizado encontrou o Parque, criou evento e compartilhou local; a
+  suíte de Rules finais já passou manualmente (132/132, exit code 0). Esses
+  fatos foram reutilizados sem novos deploys.
+- O App Check manteve enforcement nas Callables e não foi ativado globalmente
+  para Firestore. Nenhuma Rule, índice ou Hosting foi alterado nesta retomada.
+- **Ainda bloqueiam o gate:** (1) após login manual do Administrador, validar
+  no painel a busca exata por UID/e-mail e o detalhe Auth sem perfil; (2) obter
+  um perfil existente sem conta Auth para confirmar o estado de UI sem criar
+  nem alterar dados reais; (3) validar um deep link protegido com sessão Auth
+  ativa e observar por período inicial mais longo erros, custos, App Check e
+  Functions. A aba atual voltou à tela de login após refresh; a senha não foi
+  solicitada nem automatizada. A confirmação do responsável sobre orçamento e
+  alertas permanece registrada, embora a identidade CLI não consiga listar os
+  budgets. Ticket 18 permanece `blocked`; não criar PR nem fazer merge até
+  satisfazer ou documentar formalmente a impossibilidade segura desses casos.

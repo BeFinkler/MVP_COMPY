@@ -393,3 +393,36 @@ expand–contract da spec.
   verificado). UID e e-mail foram omitidos. A conta permanece ativa; a
   suspensão/reativação continua pendente de confirmação no momento de cada
   mutação e deve ser executada pelo fluxo do próprio painel.
+
+## Smoke tests autenticados adicionais em 2026-10-09
+
+- Na sessão hospedada autenticada, o Dashboard carregou suas contagens; a busca
+  por prefixo de handle retornou `@usuario12`, e o detalhe exibiu o perfil e o
+  estado administrativo Auth. Após recarregar a rota do detalhe, o painel
+  retornou à tela de login sem renderizar conteúdo protegido. Esse resultado
+  confirma o guard seguro sem sessão, mas não comprova restauração da sessão nem
+  deep link autenticado após refresh.
+- Com autorização expressa do responsável e confirmação imediatamente antes
+  de cada mudança, o painel suspendeu e depois reativou a conta descartável
+  `@usuario12`. Ambas as operações foram confirmadas pela interface; o estado
+  final observado foi `Ativa`. A senha e o perfil não foram alterados.
+- Consulta somente leitura via Admin SDK confirmou que a conta Admin designada
+  é elegível e não possui documento público `users/{uid}`. Nenhum identificador
+  foi exibido ou registrado. O caso ainda precisa ser confirmado na UI pela
+  busca exata após novo login manual.
+- Cloud Logging, após a atualização das Functions em `14:09:13Z`–`14:09:16Z`,
+  reportou zero entradas `ERROR` de Cloud Run desde `14:09:17Z` até o momento
+  da consulta. Os 11 registros de verificação de Callable no
+  intervalo reportaram `auth: VALID` e `app: VALID` para as três Functions.
+  Esta janela é uma observação curta, não substitui observação sustentada de
+  custos. O responsável confirmou que orçamento e alertas permanecem
+  configurados; a conta CLI não possui permissão para listar budgets.
+- O responsável confirmou previamente Places/Users e os fluxos do mobile novo
+  em produção (mapa, criação de evento e compartilhamento no chat). Rules
+  finais: validação manual real 132/132, exit code 0. Não houve novo deploy de
+  Rules, Hosting ou índices nesta retomada.
+- Ticket 18 continua bloqueado até completar, com sessão autenticada, a busca
+  exata e o detalhe Auth sem perfil, validar um perfil existente sem conta Auth
+  sem criar dados reais, validar deep link protegido com sessão ativa e observar
+  erros/custos/App Check/Functions por período inicial suficiente. Não
+  automatizar nem solicitar a senha da conta Admin.
