@@ -352,6 +352,12 @@ expand–contract da spec.
   anteriores. Como a consulta ocorreu poucos minutos após o deploy das Rules,
   é apenas uma fotografia inicial e não satisfaz a observação sustentada nem
   comprova métricas de App Check ou custos.
+- Cloud Monitoring consultado às `2026-10-09T13:47:53Z` mostrou 19 verificações
+  App Check `ALLOW` do Web App Admin na janela de 24 horas, sem resultado
+  diferente de `ALLOW`; o contador agregado de veredictos de serviços do
+  projeto reportou 85 `ALLOW`. A janela iniciada no horário da publicação das
+  Rules ainda não tinha verificações. É necessário confirmar tráfego autenticado
+  após o contract final e observar os resultados; isso não comprova custos.
 - Ainda falta evidência autenticada de navegação Places/lista e detalhe,
   pesquisa e casos de perfil/conta ausentes, chamadas protegidas com Auth +
   claim + App Check, e o fluxo de suspensão/reativação usando uma conta de teste
