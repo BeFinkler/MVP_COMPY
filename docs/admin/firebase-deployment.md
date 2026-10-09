@@ -365,3 +365,11 @@ expand–contract da spec.
   arbitrariamente. Também falta documentar a observação inicial de erros,
   custos, App Check e Functions; ticket 18 continua `blocked` até fechar esses
   itens.
+- O responsável confirmou que as telas Places e Users estão funcionando e
+  compartilhou uma captura de um perfil `@usuario12`. Consulta Admin SDK
+  somente leitura pelo handle localizou exatamente um perfil e uma conta Auth
+  correspondente, habilitada e sem claim administrativa. A captura não contém
+  e-mail; UID e outros identificadores foram omitidos. A conta foi indicada
+  como descartável, mas ainda não sofreu mutação. A sessão administrativa não
+  está disponível à automação e o teste de suspensão/reativação continua
+  pendente de confirmação explícita no momento da ação.
