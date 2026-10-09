@@ -302,3 +302,28 @@ expand–contract da spec.
   Firebase Auth, custom claims ou validações das Rules como contingência.
 - Não apague `places/parque_do_trabalhador`, operações administrativas ou
   índices durante rollback.
+
+## Revalidação do App Check e smoke público em 2026-10-09
+
+- Após o responsável registrar o token de debug, a API oficial de App Check
+  confirmou dois tokens associados ao Web App e a troca do token recém-registrado
+  retornou HTTP 200 com um token App Check válido. Os valores secretos foram
+  mantidos fora da saída, dos arquivos e do Git.
+- O responsável relatou login local bem-sucedido antes do registro do token; a
+  troca HTTP 200 valida o token registrado, mas não substitui a validação de uma
+  chamada autenticada do painel.
+- Auditoria remota confirmou billing habilitado/conta vinculada, provider
+  reCAPTCHA v3 configurado (`siteSecretSet: true`, TTL `86400s`, score `0.5`),
+  13/13 índices correspondentes ao arquivo local em `READY`, e as três
+  Functions gen2 ativas em `southamerica-east1` com runtime `nodejs20`.
+- As três Functions rejeitaram POST sem autenticação com HTTP 401. O Admin
+  hospedado respondeu HTTP 200 nas rotas SPA testadas e no asset do Parque; o
+  deep link `/dashboard` sem sessão redirecionou para `/login`.
+- A conta dedicada consultada está habilitada, verificada, com provider
+  `password` e claim `admin: true`. O local legado existe como `active`, com os
+  campos aprovados e imagem HTTPS. As consultas foram somente leitura.
+- As Rules remotas continuam no ruleset transitório. Não publique as Rules
+  finais até confirmar o rollout/validação do writer mobile novo conforme
+  expand–contract. O smoke autenticado hospedado e o período inicial de
+  observação de erros, custos, App Check e Functions também continuam pendentes;
+  veja o estado e as evidências atuais no ticket 18.
