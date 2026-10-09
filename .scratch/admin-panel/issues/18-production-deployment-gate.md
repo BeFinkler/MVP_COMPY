@@ -15,15 +15,15 @@ Spec: §§ 9, 13, 22–25, Testing Decisions / Scripts e implantação, e Furthe
 - [x] CLI autenticada e permissões de deploy foram confirmadas pelo responsável.
 - [x] Endereço e imagem de `parque_do_trabalhador` foram confirmados antes da migração remota.
 - [x] Índices estão `READY` antes de publicar escritores dependentes.
-- [ ] A sequência de deploy segue Rules transitórias, migração/backfill, mobile novo, validação, Hosting/Functions com App Check e Rules finais.
+- [x] A sequência de deploy segue Rules transitórias, migração/backfill, mobile novo, validação, Hosting/Functions com App Check e Rules finais.
 - [ ] Smoke tests reais cobrem login administrativo, deep link, Dashboard, locais, busca, conta sem perfil, perfil sem conta, suspensão, reativação e comportamento de token já emitido.
 - [ ] Erros, custos, App Check e Functions são observados no período inicial; enforcement global do Firestore não é ativado neste ticket.
 - [x] Resultado das implantações realizadas, versões e decisão de rollback permanecem documentados sem segredos.
 
 ## Verification
 
-- [ ] Executar somente após intervenção manual explícita do responsável e com confirmação antes de cada deploy remoto.
-- [ ] Anexar evidências não sensíveis dos smoke tests e das versões implantadas.
+- [x] Executar somente após intervenção manual explícita do responsável e com confirmação antes de cada deploy remoto.
+- [x] Anexar evidências não sensíveis dos smoke tests executados e das versões implantadas.
 
 ## Gate local em 2026-10-03
 
@@ -138,3 +138,13 @@ O bloqueio de Spark foi superado. O ticket permanece `blocked` pelo gate de prod
 - No momento desta reauditoria, `127.0.0.1:53421` não tinha servidor escutando; não foi reiniciado nem houve nova autenticação local.
 - As Rules remotas continuam no ruleset transitório `71deeb21-acce-4a9f-ab0b-2df6189d640a`. As Rules finais locais permanecem validadas por 132/132, exit code 0, mas não foram publicadas: ainda não há evidência de rollout e validação em produção do novo writer mobile, exigida pela sequência expand–contract.
 - Permanecem pendentes: (1) confirmar/realizar o rollout do mobile novo e validar suas leituras/escritas compatíveis com o contrato final; (2) executar o smoke test autenticado hospedado cobrindo Dashboard, Places, buscas, casos de perfil/conta ausentes, suspensão, reativação e limitação de token já emitido; (3) observar erros, custos, App Check e Functions no período inicial. A publicação das Rules finais e a finalização GitHub dependem desses gates. Ticket 18 permanece `blocked`.
+
+## Rules finais e validação de produção pelo responsável em 2026-10-09
+
+- Antes do deploy, a release remota ainda apontava para o ruleset transitório `projects/compy-tcc/rulesets/71deeb21-acce-4a9f-ab0b-2df6189d640a`. O responsável confirmou que o mobile novo, contra produção, encontrou o Parque do Trabalhador na descoberta/mapa, criou um Evento Esportivo usando esse local e compartilhou o local no chat. Essa validação do escritor novo satisfez a precondição expand–contract para publicar o contract final.
+- Foi feito deploy seletivo apenas de `firestore.rules` para `compy-tcc`: `firebase deploy --only firestore:rules --project compy-tcc --non-interactive`, exit code 0. Não houve alteração no arquivo Rules, nos índices, no Hosting nem nas Functions nesta etapa.
+- A API oficial confirmou a release ativa `projects/compy-tcc/releases/cloud.firestore` apontando para `projects/compy-tcc/rulesets/24feca45-54d7-4abc-82c2-982247968be2`, atualizada em `2026-10-09T13:42:05.607306Z`. O SHA-256 do conteúdo remoto de `firestore.rules` é `e2b0a3c2aa15abaaea0ef9a376bc4e5a7b1f49c8a59d2924c83537943d9ea147`, igual ao arquivo local. A suíte completa das Rules já havia sido executada manualmente: 132/132, 17 suítes, exit code 0.
+- Após o deploy, a consulta remota confirmou 13/13 índices `READY`. As três Callables continuam `ACTIVE`, gen2, em `southamerica-east1`, runtime `nodejs20`. POSTs sem credenciais às três continuaram retornando HTTP 401. GETs sem autenticação para `/login`, `/dashboard`, `/places`, `/users` e para a imagem publicada do Parque responderam HTTP 200; isso valida Hosting/SPA e proteção de entrada, não conteúdo autenticado.
+- Consulta agregada somente leitura ao Cloud Logging, em `2026-10-09T13:45:16Z`, para entradas `ERROR` de `cloud_run_revision` nas 24 horas anteriores retornou zero registros. Como foi feita poucos minutos após a publicação das Rules, é apenas uma fotografia inicial; não substitui observação sustentada nem métricas de App Check e custos.
+- O responsável também confirmou que o Admin hospedado autenticou e chegou ao Dashboard sem erro. Essa confirmação é evidência manual de login e Dashboard; não foi capturada uma sessão autenticada na ferramenta de navegador desta execução.
+- Permanecem sem evidência de produção: navegação autenticada por Places/lista e detalhe; consultas de usuários e casos de Perfil sem Conta/Conta sem Perfil; chamadas autenticadas às Callables com Auth, claim e App Check; suspensão e reativação de uma conta de teste explicitamente designada; e a observação inicial de erros, custos, App Check e Functions. Nenhuma conta real foi escolhida ou suspensa para teste. Ticket 18 permanece `blocked` até esses critérios serem validados e documentados.

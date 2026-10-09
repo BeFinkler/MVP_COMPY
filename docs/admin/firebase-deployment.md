@@ -327,3 +327,35 @@ expand–contract da spec.
   expand–contract. O smoke autenticado hospedado e o período inicial de
   observação de erros, custos, App Check e Functions também continuam pendentes;
   veja o estado e as evidências atuais no ticket 18.
+
+## Rules finais e validação de produção em 2026-10-09
+
+- O responsável confirmou os fluxos de produção do mobile novo: Parque do
+  Trabalhador apareceu na descoberta/mapa, a criação de Evento Esportivo com
+  esse local funcionou e o compartilhamento no chat funcionou.
+- Após essa confirmação, foi publicado somente `firestore.rules` com
+  `firebase deploy --only firestore:rules --project compy-tcc --non-interactive`
+  (exit code 0). Não houve redeploy de Hosting ou Functions nem alteração de
+  índices.
+- A release ativa verificada pela API oficial é
+  `projects/compy-tcc/rulesets/24feca45-54d7-4abc-82c2-982247968be2`, atualizada
+  em `2026-10-09T13:42:05.607306Z`. SHA-256 remoto e local:
+  `e2b0a3c2aa15abaaea0ef9a376bc4e5a7b1f49c8a59d2924c83537943d9ea147`. A suíte
+  completa validada manualmente para essas Rules: 132/132, exit code 0.
+- Auditoria posterior somente leitura: 13/13 índices `READY`; as três
+  Callables `ACTIVE`, gen2, `southamerica-east1`, runtime `nodejs20`. Sem Auth,
+  as três continuaram protegidas (HTTP 401). As rotas hospedadas `/login`,
+  `/dashboard`, `/places`, `/users` e a imagem do Parque retornaram HTTP 200.
+  O responsável confirmou ainda login hospedado e chegada ao Dashboard.
+- Consulta agregada somente leitura ao Cloud Logging em `2026-10-09T13:45:16Z`
+  encontrou zero entradas `ERROR` de `cloud_run_revision` nas 24 horas
+  anteriores. Como a consulta ocorreu poucos minutos após o deploy das Rules,
+  é apenas uma fotografia inicial e não satisfaz a observação sustentada nem
+  comprova métricas de App Check ou custos.
+- Ainda falta evidência autenticada de navegação Places/lista e detalhe,
+  pesquisa e casos de perfil/conta ausentes, chamadas protegidas com Auth +
+  claim + App Check, e o fluxo de suspensão/reativação usando uma conta de teste
+  não administrativa designada. Não suspender uma conta real escolhida
+  arbitrariamente. Também falta documentar a observação inicial de erros,
+  custos, App Check e Functions; ticket 18 continua `blocked` até fechar esses
+  itens.
