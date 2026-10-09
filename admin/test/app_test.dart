@@ -47,6 +47,63 @@ void main() {
     },
   );
 
+  test('guard preserva deep link até autenticação e rejeita destino externo', () {
+    for (final destination in <String>['/dashboard', '/users', '/places']) {
+      final redirect = redirectForAdminRoute(
+        location: Uri.parse(destination).path,
+        accessState: AdminAccessState.signedOut,
+        requestedLocation: destination,
+      );
+      expect(Uri.parse(redirect!).path, '/login');
+      final restoredDestination = Uri.parse(redirect).queryParameters['from'];
+      expect(restoredDestination, destination);
+      expect(
+        redirectForAdminRoute(
+          location: '/login',
+          accessState: AdminAccessState.authorized,
+          requestedLocation: restoredDestination,
+        ),
+        destination,
+      );
+    }
+
+    final signedOutRedirect = redirectForAdminRoute(
+      location: '/users',
+      accessState: AdminAccessState.signedOut,
+      requestedLocation: '/users/a-user',
+    );
+    expect(Uri.parse(signedOutRedirect!).path, '/login');
+    expect(
+      Uri.parse(signedOutRedirect).queryParameters['from'],
+      '/users/a-user',
+    );
+
+    expect(
+      redirectForAdminRoute(
+        location: '/login',
+        accessState: AdminAccessState.authorized,
+        requestedLocation: '/places?status=inactive',
+      ),
+      '/places?status=inactive',
+    );
+    expect(
+      redirectForAdminRoute(
+        location: '/login',
+        accessState: AdminAccessState.authorized,
+        requestedLocation: 'https://example.invalid',
+      ),
+      '/dashboard',
+    );
+    expect(
+      redirectForAdminRoute(
+        location: '/login',
+        accessState: AdminAccessState.authorized,
+        requestedLocation: '//example.invalid',
+      ),
+      '/dashboard',
+    );
+  });
+
   test('breakpoint do shell separa sidebar permanente e recolhível', () {
     expect(usesDesktopAdminNavigation(839), isFalse);
     expect(usesDesktopAdminNavigation(840), isTrue);
@@ -156,6 +213,33 @@ void main() {
     expect(find.byTooltip('Sair'), findsOneWidget);
   });
 
+  testWidgets(
+    'deep link volta ao destino original quando a sessão Admin é restaurada',
+    (tester) async {
+      final gateway = _FakeAdminAuthGateway(candidate: null);
+      await tester.pumpWidget(
+        CompyAdminApp(
+          authGateway: gateway,
+          initialLocation: '/users/a-user',
+          usersRepository: _FakeAdminUsersRepository(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(AdminStrings.loginTitle), findsOneWidget);
+
+      gateway.candidate = _authorizedCandidate;
+      gateway.authEvents.add(null);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Detalhes do Usuário'), findsOneWidget);
+      expect(find.text('Dashboard'), findsNothing);
+
+      await gateway.authEvents.close();
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   testWidgets('atalho de locais inativos aplica o filtro explicitamente', (
     tester,
   ) async {
@@ -225,6 +309,7 @@ const _authorizedCandidate = AdminAuthCandidate(
 class _FakeAdminAuthGateway implements AdminAuthGateway {
   _FakeAdminAuthGateway({this.candidate, this.candidateFuture});
 
+  final StreamController<void> authEvents = StreamController<void>.broadcast();
   AdminAuthCandidate? candidate;
   Future<AdminAuthCandidate?>? candidateFuture;
   AdminAuthCandidate? candidateAfterLogin;
@@ -234,7 +319,7 @@ class _FakeAdminAuthGateway implements AdminAuthGateway {
   String? lastLoginPassword;
 
   @override
-  Stream<void> get authStateChanges => const Stream<void>.empty();
+  Stream<void> get authStateChanges => authEvents.stream;
 
   @override
   Future<AdminAuthCandidate?> refreshCurrentSession() async =>
