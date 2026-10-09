@@ -155,6 +155,26 @@ sequência expand–contract nem os critérios do ticket 18.
   Users, Callables e suspensão/reativação); observar App Check/Functions. Não
   houve publicação no repositório oficial, PR ou merge.
 
+## Bootstrap da conta Admin em 2026-10-09
+
+- Com ADC configurado, o Admin SDK localizou a conta dedicada indicada pelo
+  responsável. Ela estava habilitada e usava `password`, mas ainda não tinha
+  `emailVerified` nem a claim `admin`.
+- Por autorização explícita do responsável nesta sessão, o Admin SDK alterou
+  somente `emailVerified` para `true`; a senha e o provider foram preservados.
+  O bootstrap oficial do pacote `tools/firebase-admin` então concedeu
+  `admin: true`, preservando claims existentes. Verificação final confirmou
+  conta habilitada, e-mail verificado, provider `password` e claim `admin`.
+  Nenhuma credencial ou identificador da conta foi persistido.
+- Esta é uma exceção operacional única. Não altera a spec nem o comportamento
+  do script: bootstraps futuros continuam a exigir e-mail já verificado e não
+  marcam esse campo automaticamente. A pessoa deve autenticar novamente ou
+  renovar o ID token para receber a claim. Refresh tokens não foram revogados,
+  pois não havia necessidade demonstrada de invalidar sessões.
+- Login real e smoke tests autenticados permanecem pendentes; não solicitar ou
+  registrar a senha no chat. O restante do gate depende também da validação do
+  novo writer mobile antes da publicação das Rules finais.
+
 ## Estado e limites
 
 - O projeto é `compy-tcc`; o Hosting usa um target dedicado `admin` e publica

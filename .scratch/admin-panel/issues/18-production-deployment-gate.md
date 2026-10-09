@@ -104,6 +104,14 @@ O bloqueio de Spark foi superado. O ticket permanece `blocked` pelo gate de prod
 - Smoke tests de hospedagem, carregamento da tela de login e redirecionamento do guard sem sessão passaram. Permanecem sem evidência: login real como Administrador, inicialização autorizada do Dashboard/Places/Users, chamadas autenticadas das Callables, suspensão/reativação, validação ponta a ponta de App Check contra recursos, rollout/validação do novo app mobile e observação inicial de produção.
 - Ticket 18 permanece `blocked`. Bloqueios reais restantes: (1) preparar/indicar uma conta elegível e concluir bootstrap com ADC/Admin SDK confiável; (2) publicar e validar o mobile novo antes de publicar Rules finais; (3) executar smoke tests autenticados e observar App Check/Functions. O deploy no repositório oficial, PR e merge não foram iniciados porque o gate 18 ainda não está resolvido. O fork continua como `origin` e o original como `upstream`.
 
+## Bootstrap da conta Admin em 2026-10-09
+
+- Com ADC e `GOOGLE_CLOUD_PROJECT=compy-tcc` apenas no processo, o Admin SDK localizou a conta dedicada indicada pelo responsável. A saída foi limitada a flags: habilitada, provider `password`, `emailVerified: false`, sem claim admin.
+- Por autorização explícita do responsável nesta sessão, o Admin SDK atualizou somente `emailVerified: true`; senha e provider não foram alterados. Em seguida foi executado o fluxo de bootstrap existente (`runBootstrapCli` / `bootstrapAdministrator`), que concedeu `admin: true` preservando quaisquer outras claims. A verificação final confirmou conta habilitada, e-mail verificado, provider `password` e claim admin. Nenhum UID, e-mail, senha ou token foi gravado neste registro.
+- Esta foi uma exceção operacional única expressamente autorizada pelo responsável. O código e a regra durável da spec permanecem inalterados: o bootstrap padrão continua recusando contas não verificadas e não define `emailVerified` automaticamente.
+- Refresh tokens não foram revogados: o bootstrap não exige revogação e não havia necessidade demonstrada de invalidar sessões. A pessoa deve entrar novamente/renovar seu ID token para receber a claim recém-concedida. A senha não foi solicitada nem usada.
+- A conta agora está elegível para autenticação no Admin, mas o login com senha e os smoke tests autenticados ainda precisam ser executados sem compartilhar a senha. O ticket 18 continua `blocked` enquanto não houver validação do login real, Dashboard/Places/Users/Callables e suspensão/reativação, rollout/validação do mobile novo e observação inicial de produção.
+
 ## Auditoria de retomada em 2026-10-07
 
 - Estado local: `feat/admin-panel`, HEAD e `origin/feat/admin-panel` em `2236d973b25e09bdb70aaf2067c5b11741dd5c3d`, working tree limpo. Remotes continuam `origin` no fork `BeFinkler/MVP_COMPY` e `upstream` no original `GabrielPittaBr/MVP_COMPY`.
